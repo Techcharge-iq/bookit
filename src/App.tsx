@@ -17,6 +17,7 @@ import ClientStatement from "./pages/ClientStatement";
 import PaymentForm from "./pages/PaymentForm";
 import PaymentsReceipts from "./pages/PaymentsReceipts";
 import ChartOfAccounts from "./pages/ChartOfAccounts";
+import AccountStatement from "./pages/AccountStatement";
 import Settings from "./pages/Settings";
 import ProfitAndLoss from "./pages/reports/ProfitAndLoss";
 import BalanceSheet from "./pages/reports/BalanceSheet";
@@ -50,6 +51,7 @@ const App = () => (
               <Route path="/clients" element={<ClientsList />} />
               <Route path="/clients/:id/statement" element={<ClientStatement />} />
               <Route path="/accounts" element={<ChartOfAccounts />} />
+              <Route path="/accounts/:id/statement" element={<AccountStatement />} />
               <Route path="/reports/pnl" element={<ProfitAndLoss />} />
               <Route path="/reports/balance-sheet" element={<BalanceSheet />} />
               <Route path="/reports/trial-balance" element={<TrialBalance />} />
