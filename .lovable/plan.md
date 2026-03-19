@@ -1,62 +1,58 @@
 
 
-# Add OMR Currency + Client Statement & Payment Features
+# Implementation Plan
 
-## 1. Add OMR (Omani Rial) Currency
+## 1. Stylish Collapsible Icon Sidebar
 
-**Files to change:**
-- `src/types/index.ts` -- Add `'OMR'` to the `BusinessSettings['currency']` union type and add `OMR: 'ر.ع.'` to `currencySymbols`
-- `src/pages/Settings.tsx` -- Add OMR option to the currency Select dropdown
+**Current state**: Fixed 224px sidebar with text labels, mobile hamburger toggle.
 
-## 2. Client Statement Page
+**Changes**:
 
-A new page at `/clients/:id/statement` showing a full financial summary for a specific client.
+### `src/components/layout/AppLayout.tsx` — Full rewrite of sidebar
+- Add `collapsed` state (default: `true` on desktop, hidden on mobile as before)
+- Collapsed mode: narrow sidebar (~56px) showing only icons
+- Expanded mode: full width (~224px) with icons + labels
+- Hamburger/toggle button at top to expand/collapse
+- Add `Tooltip` on each icon when collapsed (shows menu label on hover)
+- Smooth width transition via `transition-all duration-200`
+- Active item: distinct background highlight (e.g. `bg-primary/10 text-primary border-l-2 border-primary`)
+- Reports sub-menu: show as collapsible group when expanded, tooltip flyout when collapsed
+- Update `lg:pl-56` to be dynamic based on collapsed state (`lg:pl-14` vs `lg:pl-56`)
+- Mobile behavior unchanged (overlay sidebar)
 
-**What it shows:**
-- Client name and contact info at the top
-- Filter by date range
-- A table/list of all quotations and invoices for that client, sorted by date
-- Each row: Date | Document Number | Type (Quote/Invoice) | Status | Amount
-- Running balance/totals at the bottom: Total Invoiced, Total Paid, Outstanding Balance
+### Visual design
+- Collapsed: slim icon strip with subtle separator, logo shows only icon
+- Expanded: current layout with smooth slide animation
+- Icons get centered alignment in collapsed mode
+- Settings link at bottom of sidebar (separated with spacer)
 
-**New file:** `src/pages/ClientStatement.tsx`
+## 2. Account History/Statement Page
 
-**Changes to existing files:**
-- `src/App.tsx` -- Add route `/clients/:id/statement`
-- `src/pages/ClientsList.tsx` -- Add a "Statement" button/link for each client (desktop actions + mobile sheet)
+### `src/pages/AccountStatement.tsx` — New page
+- Reads account ID from URL params (`/accounts/:id/statement`)
+- Pulls account info from `accounts` array, journal entries from `journalEntries`
+- **Header**: Account name, code, type badge, current balance
+- **Date filter**: Preset buttons (Today, This Week, This Month, This Year) + custom date range picker
+- **Transaction table**: Date, Reference, Description, Debit, Credit, Running Balance
+  - Running balance calculated chronologically within filtered period
+  - Sorted by date ascending
+- **Summary cards**: Opening Balance, Total Debits, Total Credits, Closing Balance
+- **Export**: PDF export using existing `documentUtils.ts` pattern, CSV export via blob download
 
-## 3. Payment Recording Page
+### `src/pages/ChartOfAccounts.tsx` — Make accounts clickable
+- Wrap each account row in a `Link` to `/accounts/${acc.id}/statement`
+- Add a small arrow/eye icon to indicate clickability
+- Cursor pointer styling
 
-A new page at `/invoices/:id/payment` (or a dialog) to record payments against invoices.
+### `src/App.tsx` — Add route
+- Add: `<Route path="/accounts/:id/statement" element={<AccountStatement />} />`
 
-**New type in `src/types/index.ts`:**
-```
-Payment {
-  id, invoiceId, amount, date, method ('cash'|'bank'|'cheque'|'online'), notes, createdAt
-}
-```
+### Data flow
+- Filter `journalEntries` where any `line.accountId === accountId`
+- For each matching entry, extract the line for this account (debit/credit amounts)
+- Calculate opening balance from entries before the filter start date
+- Running balance = opening balance + cumulative (debits - credits) for the account type
 
-**What it includes:**
-- Select payment method (Cash, Bank Transfer, Cheque, Online)
-- Enter amount (with option to pay partial or full)
-- Payment date picker
-- Optional notes/reference number
-- Shows invoice balance remaining after payment
-
-**New files:**
-- `src/pages/PaymentForm.tsx` -- Record payment form
-
-**Changes to existing files:**
-- `src/types/index.ts` -- Add `Payment` interface and payment method type
-- `src/contexts/AppContext.tsx` -- Add `payments` state array with CRUD operations, add helper to get payments by invoice/client
-- `src/App.tsx` -- Add route `/invoices/:id/payment`
-- `src/pages/InvoiceForm.tsx` -- Add "Record Payment" button for sent/unpaid invoices
-- `src/pages/ClientStatement.tsx` -- Include payment records in the statement view
-
-## Technical Details
-
-- Payments stored in localStorage via `useLocalStorage` hook (key: `app_payments`)
-- Invoice status auto-updates to "paid" when total payments equal or exceed invoice amount
-- Client statement aggregates invoices + payments to show outstanding balance
-- All new pages follow the existing compact, mobile-first design patterns
+**Files modified**: `AppLayout.tsx`, `ChartOfAccounts.tsx`, `App.tsx`
+**Files created**: `AccountStatement.tsx`
 
