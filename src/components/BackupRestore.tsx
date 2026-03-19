@@ -1,3 +1,15 @@
+declare global {
+  interface Window {
+    electronAPI?: {
+      getDbPath: () => Promise<string>;
+      backupDatabase: (destination: string) => Promise<{ success: boolean; message?: string }>;
+      restoreDatabase: (source: string) => Promise<{ success: boolean; message?: string }>;
+      showSaveDialog: (options: Record<string, unknown>) => Promise<string | undefined>;
+      showOpenDialog: (options: Record<string, unknown>) => Promise<string | undefined>;
+    };
+  }
+}
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
