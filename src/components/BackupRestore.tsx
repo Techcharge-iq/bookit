@@ -1,3 +1,17 @@
+declare global {
+  interface Window {
+    electronAPI?: {
+      getDbPath: () => Promise<string>;
+      backup: (destination: string) => Promise<void>;
+      restore: (source: string) => Promise<void>;
+      backupDatabase: (destination: string) => Promise<{ success: boolean; message?: string }>;
+      restoreDatabase: (source: string) => Promise<{ success: boolean; message?: string }>;
+      showSaveDialog: (options: Record<string, unknown>) => Promise<{ canceled: boolean; filePath?: string }>;
+      showOpenDialog: (options: Record<string, unknown>) => Promise<{ canceled: boolean; filePaths: string[] }>;
+    };
+  }
+}
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
