@@ -17,7 +17,8 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import type { Account, AccountType } from '@/types';
-import { Plus, Trash2, BookOpen } from 'lucide-react';
+import { Plus, Trash2, BookOpen, ChevronRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const typeColors: Record<AccountType, string> = {
   asset: 'bg-primary/10 text-primary',
