@@ -17,6 +17,7 @@ import ClientStatement from "./pages/ClientStatement";
 import PaymentForm from "./pages/PaymentForm";
 import PaymentsReceipts from "./pages/PaymentsReceipts";
 import ChartOfAccounts from "./pages/ChartOfAccounts";
+import AccountStatement from "./pages/AccountStatement";
 import Settings from "./pages/Settings";
 import ProfitAndLoss from "./pages/reports/ProfitAndLoss";
 import BalanceSheet from "./pages/reports/BalanceSheet";
