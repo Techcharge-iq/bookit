@@ -22,6 +22,7 @@ const navigation = [
   { name: 'Sales Invoices', href: '/invoices', icon: Receipt },
   { name: 'Purchase Invoices', href: '/purchases', icon: ShoppingCart },
   { name: 'Payments & Receipts', href: '/payments', icon: CreditCard },
+  { name: 'Vouchers', href: '/vouchers', icon: Wallet },
   { name: 'Parties', href: '/clients', icon: Users },
   { name: 'Chart of Accounts', href: '/accounts', icon: BookOpen },
 ];
