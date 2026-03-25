@@ -144,6 +144,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // Journal operations
   const createJournalEntry = (entry: JournalEntry) => setJournalEntries((prev) => [...prev, entry]);
+
+  // Voucher operations
+  const addVoucher = (voucher: Voucher) => setVouchers((prev) => [...prev, voucher]);
+  const generateVoucherNumber = (type: string) => {
+    const prefix = type.toUpperCase().replace(/_/g, '-');
+    const year = new Date().getFullYear();
+    const count = vouchers.filter((v) => v.type === type).length + 1;
+    return `${prefix}-${year}-${count.toString().padStart(3, '0')}`;
+  };
   
   const getAccountBalance = (accountId: string) => {
     let balance = 0;
