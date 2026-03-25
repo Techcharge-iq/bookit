@@ -1,32 +1,40 @@
 
 
-# Radial Menu: Center-Bottom Trigger, Center-Screen Icons-Only Expansion
+# Radial Menu: Framer Motion Animations + Tooltips
 
-## Changes — single file: `src/components/layout/RadialMenu.tsx`
+## Changes
 
-### 1. Move trigger button to bottom-center
-Change the container from `fixed bottom-6 right-6` to `fixed bottom-6 left-1/2 -translate-x-1/2` so the FAB sits at the horizontal center of the screen.
+### 1. Install framer-motion
+Add `framer-motion` as a dependency.
 
-### 2. Open icons in screen center (not relative to button)
-When open, position nav items in a circle around the **center of the viewport** instead of around the trigger button. Use a separate `fixed` container centered on screen (`inset-0 flex items-center justify-center`) that holds all the radial items. Each item positioned with absolute + transform from center using a full 360° circle distribution (evenly spaced: `index * (360 / 9)` degrees, radius ~120px).
+### 2. Rewrite `src/components/layout/RadialMenu.tsx`
 
-### 3. Icons only — remove text labels
-Remove the `<span>` with `item.name` beneath each icon. Add a `title` attribute on each Link for tooltip on hover. Keep icon circles at `h-12 w-12`.
+**Spring animations** using `motion.div` and `AnimatePresence`:
+- **Backdrop**: `motion.div` with opacity fade in/out
+- **Each nav item**: `motion(Link)` with spring animation — items fly out from center to their radial position with staggered delays. Use `type: "spring", stiffness: 300, damping: 20` for a bouncy feel. Exit animates back to center.
+- **Trigger button**: `motion.button` with `rotate` animation (0° ↔ 90°) and subtle scale pulse
 
-### 4. Remove the broken inline `<style>` block
-The current CSS custom property approach (`--tx`, `--ty`) doesn't work properly. Replace with direct inline `transform` values computed in JS — no media query needed since we use a single radius for the centered layout.
+**Tooltip labels** on hover:
+- Wrap each icon in a group with a tooltip `<span>` that appears on hover — a small pill label positioned above/below the icon using CSS. Uses `group-hover:opacity-100 group-hover:scale-100` for reveal. This avoids Radix tooltip complexity inside animated elements.
 
-### Layout Summary
+**Trigger stays bottom-center** (already correct in current code).
+
+### File changes
+
+| File | Action |
+|------|--------|
+| `package.json` | Add `framer-motion` |
+| `src/components/layout/RadialMenu.tsx` | Rewrite with `motion` components, spring physics, hover tooltips |
+
+### Key implementation details
+
 ```text
-┌─────────────────────────────┐
-│                             │
-│         ○  ○  ○             │
-│       ○        ○            │
-│       ○        ○            │  ← icons in 360° circle
-│         ○  ○               │     at viewport center
-│                             │
-│                             │
-│          [FAB]              │  ← bottom center
-└─────────────────────────────┘
+- motion(Link) with variants:
+  hidden: { x: 0, y: 0, scale: 0, opacity: 0 }
+  visible(i): { x, y, scale: 1, opacity: 1, transition: { type: "spring", stiffness: 300, damping: 20, delay: i * 0.04 } }
+  exit: { x: 0, y: 0, scale: 0, opacity: 0, transition: { duration: 0.2 } }
+
+- Tooltip: relative group wrapper, absolute span with item.name
+  positioned via computed angle (top half → below, bottom half → above)
 ```
 
