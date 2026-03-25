@@ -189,14 +189,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     });
 
     try {
-      window.localStorage.removeItem(`app_clients_${id}`);
-      window.localStorage.removeItem(`app_quotations_${id}`);
-      window.localStorage.removeItem(`app_invoices_${id}`);
-      window.localStorage.removeItem(`app_purchase_invoices_${id}`);
-      window.localStorage.removeItem(`app_payments_${id}`);
-      window.localStorage.removeItem(`app_accounts_${id}`);
-      window.localStorage.removeItem(`app_journal_entries_${id}`);
-      window.localStorage.removeItem(`app_settings_${id}`);
+      const keys = ['clients', 'quotations', 'invoices', 'purchase_invoices', 'payments', 'accounts', 'journal_entries', 'settings', 'vouchers'];
+      keys.forEach(k => window.localStorage.removeItem(`app_${k}_${id}`));
     } catch (error) {
       console.warn('Failed to remove company data', error);
     }
