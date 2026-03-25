@@ -50,6 +50,12 @@ interface AppContextType {
   setAccounts: (accounts: Account[] | ((prev: Account[]) => Account[])) => void;
   addAccount: (account: Account) => void;
   deleteAccount: (id: string) => void;
+  // Vouchers
+  vouchers: Voucher[];
+  addVoucher: (voucher: Voucher) => void;
+  generateVoucherNumber: (type: string) => string;
+
+  // Journal
   journalEntries: JournalEntry[];
   createJournalEntry: (entry: JournalEntry) => void;
   getAccountBalance: (accountId: string) => number;
