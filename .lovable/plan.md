@@ -1,49 +1,32 @@
 
 
-# Fix Settings Page: Updates Section & Multi-Company Management
+# Radial Menu: Center-Bottom Trigger, Center-Screen Icons-Only Expansion
 
-## Problems Identified
+## Changes — single file: `src/components/layout/RadialMenu.tsx`
 
-1. **Update section crashes in web**: `window.electronAPI.update.getVersion()` is called unconditionally on mount — fails in browser since `electronAPI` only exists in Electron. Need to guard all Electron API calls.
+### 1. Move trigger button to bottom-center
+Change the container from `fixed bottom-6 right-6` to `fixed bottom-6 left-1/2 -translate-x-1/2` so the FAB sits at the horizontal center of the screen.
 
-2. **Company management UX is bare**: Rename/delete are loose inputs and buttons. Need a cleaner UI for managing multiple companies.
+### 2. Open icons in screen center (not relative to button)
+When open, position nav items in a circle around the **center of the viewport** instead of around the trigger button. Use a separate `fixed` container centered on screen (`inset-0 flex items-center justify-center`) that holds all the radial items. Each item positioned with absolute + transform from center using a full 360° circle distribution (evenly spaced: `index * (360 / 9)` degrees, radius ~120px).
 
-## Changes
+### 3. Icons only — remove text labels
+Remove the `<span>` with `item.name` beneath each icon. Add a `title` attribute on each Link for tooltip on hover. Keep icon circles at `h-12 w-12`.
 
-### 1. Fix Update Section (`src/pages/Settings.tsx`)
+### 4. Remove the broken inline `<style>` block
+The current CSS custom property approach (`--tx`, `--ty`) doesn't work properly. Replace with direct inline `transform` values computed in JS — no media query needed since we use a single radius for the centered layout.
 
-- Guard `loadVersion` and `handleCheckUpdates` with `window.electronAPI?.update` checks
-- Conditionally render the "About & Updates" card only when running inside Electron (`!!window.electronAPI`)
-- Similarly guard `BackupRestore` rendering (it also uses `electronAPI`)
-
-### 2. Improve Multi-Company Management (`src/pages/Settings.tsx`)
-
-Redesign the Company card section:
-
-- **Active company selector** dropdown (existing, keep as-is)
-- **Create new company**: Input + "Add" button (existing, keep as-is)
-- **Company list**: Show all companies in a small list/table below with:
-  - Company name (editable inline or via edit icon that opens a rename input)
-  - "Active" badge on the selected company
-  - Edit (pencil icon) button — toggles inline rename input
-  - Delete (trash icon) button with confirmation dialog — disabled for default company
-  - Switch button or click-to-select to change active company
-- Remove the loose "Rename" input + button row — replace with per-company edit icons
-
-### File: `src/pages/Settings.tsx`
-
-**Update section fix**:
-- `loadVersion`: wrap in `if (!window.electronAPI?.update) return;`
-- `handleCheckUpdates`: wrap in `if (!window.electronAPI?.update)` with a toast fallback
-- Conditionally render About card: `{window.electronAPI && ( ... )}`
-- Conditionally render BackupRestore: `{window.electronAPI && <BackupRestore />}`
-
-**Company management redesign**:
-- Add `editingCompanyId` and `editName` state variables
-- Replace the rename row with a company list using `companies.map()`:
-  - Each row: name (or Input if editing), active badge, edit/save/delete buttons
-  - Edit toggles `editingCompanyId`; Save calls `updateCompany` and clears editing state
-  - Delete shows a simple confirm or uses AlertDialog
-  - Click company name or a "Switch" button calls `setSelectedCompanyId`
-- Keep the "Create New Company" input + Add button at the bottom
+### Layout Summary
+```text
+┌─────────────────────────────┐
+│                             │
+│         ○  ○  ○             │
+│       ○        ○            │
+│       ○        ○            │  ← icons in 360° circle
+│         ○  ○               │     at viewport center
+│                             │
+│                             │
+│          [FAB]              │  ← bottom center
+└─────────────────────────────┘
+```
 
