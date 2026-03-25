@@ -216,7 +216,7 @@ export default function Settings() {
                   {editingCompanyId === company.id ? (
                     <div className="flex gap-1">
                       <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={saveEdit}>
-                        <Check className="h-3.5 w-3.5 text-green-600" />
+                        <Check className="h-3.5 w-3.5 text-primary" />
                       </Button>
                       <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={cancelEdit}>
                         <X className="h-3.5 w-3.5 text-muted-foreground" />
