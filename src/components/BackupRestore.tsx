@@ -13,14 +13,18 @@ declare global {
 }
 
 import { useState, useEffect } from 'react';
+import { useApp } from '@/contexts/AppContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Database, Download, Upload, Info } from 'lucide-react';
 
 export default function BackupRestore() {
+  const { selectedCompanyId, companies } = useApp();
   const [dbPath, setDbPath] = useState<string>('');
   const { toast } = useToast();
+
+  const companyName = companies.find((c) => c.id === selectedCompanyId)?.name || 'default';
 
   useEffect(() => {
     const loadDbPath = async () => {
@@ -41,7 +45,7 @@ export default function BackupRestore() {
     try {
       const result = await window.electronAPI.showSaveDialog({
         title: 'Save Database Backup',
-        defaultPath: `invoiceflow-backup-${new Date().toISOString().split('T')[0]}.db`,
+        defaultPath: `${companyName.replace(/\s+/g, '-')}-backup-${new Date().toISOString().split('T')[0]}.db`,
         filters: [{ name: 'Database Files', extensions: ['db'] }]
       });
 

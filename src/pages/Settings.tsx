@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { useEffect, useState } from 'react';
 import {
   Select,
   SelectContent,
@@ -16,42 +15,92 @@ import { useToast } from '@/hooks/use-toast';
 import type { BusinessSettings } from '@/types';
 import { Building2, Save, Upload, Trash2, Globe, Mail, Phone, MapPin, FileText, RefreshCw, Info } from 'lucide-react';
 import BackupRestore from '@/components/BackupRestore';
+import { useState, useEffect } from 'react';
 
 export default function Settings() {
-  const { settings, setSettings } = useApp();
+  const {
+    settings,
+    setSettings,
+    companies,
+    selectedCompanyId,
+    setSelectedCompanyId,
+    createCompany,
+    updateCompany,
+    deleteCompany,
+  } = useApp();
+
   const { toast } = useToast();
+  const [companyName, setCompanyName] = useState('');
+  const [newCompanyName, setNewCompanyName] = useState('');
   const [currentVersion, setCurrentVersion] = useState('');
   const [checking, setChecking] = useState(false);
 
   useEffect(() => {
-    const loadVersion = async () => {
-      try {
-        const version = await window.electronAPI.update.getVersion();
-        setCurrentVersion(version);
-      } catch (error) {
-        console.error('Failed to load app version', error);
-      }
-    };
     loadVersion();
   }, []);
 
-  const handleCheckUpdates = async () => {
-    setChecking(true);
+  const loadVersion = async () => {
     try {
-      await window.electronAPI.update.checkForUpdates();
+      const version = await window.electronAPI.update.getVersion()
+      setCurrentVersion(version)
+    } catch (error) {
+      console.error('Failed to get app version:', error)
+    }
+  }
+
+  const handleCheckUpdates = async () => {
+    setChecking(true)
+    try {
+      await window.electronAPI.update.checkForUpdates()
       toast({
         title: 'Update check completed',
-        description: 'If an update is available, you will be notified.',
-      });
+        description: 'If an update is available, you will see a notification.',
+      })
     } catch (error) {
       toast({
         title: 'Update check failed',
-        description: 'Unable to check for updates. Check internet connection.',
+        description: 'Unable to check for updates. Please check your internet connection.',
         variant: 'destructive',
-      });
-    } finally {
-      setTimeout(() => setChecking(false), 1200);
+      })
     }
+    setTimeout(() => setChecking(false), 3000)
+  }
+
+  const handleAddCompany = () => {
+    const name = companyName.trim();
+    if (!name) {
+      toast({ title: 'Name required', description: 'Please enter a company name.', variant: 'destructive' });
+      return;
+    }
+
+    createCompany(name);
+    setCompanyName('');
+
+    toast({ title: 'Company created', description: `Created and switched to ${name}.` });
+  };
+
+  const handleRenameCompany = () => {
+    if (!selectedCompanyId) return;
+    const name = newCompanyName.trim();
+    if (!name) {
+      toast({ title: 'Name required', description: 'Please enter a new name for the selected company.', variant: 'destructive' });
+      return;
+    }
+
+    updateCompany(selectedCompanyId, name);
+    setNewCompanyName('');
+    toast({ title: 'Company updated', description: `Company renamed to ${name}.` });
+  };
+
+  const handleDeleteCompany = () => {
+    if (!selectedCompanyId) return;
+    if (selectedCompanyId === 'default') {
+      toast({ title: 'Cannot delete', description: 'Default company cannot be deleted.', variant: 'destructive' });
+      return;
+    }
+
+    deleteCompany(selectedCompanyId);
+    toast({ title: 'Company deleted', description: 'Company data has been removed.', variant: 'destructive' });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -109,6 +158,69 @@ export default function Settings() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Company Selection */}
+        <Card>
+          <CardHeader className="py-3 px-4">
+            <CardTitle className="text-sm">Company</CardTitle>
+            <CardDescription className="text-xs">
+              Switch and manage multiple company profiles.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="px-4 pb-4 space-y-4">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="company-select" className="text-xs">Active Company</Label>
+                <Select
+                  value={selectedCompanyId}
+                  onValueChange={(value) => setSelectedCompanyId(value)}
+                >
+                  <SelectTrigger id="company-select" className="h-9">
+                    <SelectValue placeholder="Select company" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {companies.map((company) => (
+                      <SelectItem key={company.id} value={company.id}>
+                        {company.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="new-company" className="text-xs">Create New Company</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="new-company"
+                    value={companyName}
+                    onChange={(e) => setCompanyName(e.target.value)}
+                    placeholder="Company name"
+                    className="h-9"
+                  />
+                  <Button type="button" size="sm" onClick={handleAddCompany}>
+                    Add
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-3">
+              <Input
+                value={newCompanyName}
+                onChange={(e) => setNewCompanyName(e.target.value)}
+                placeholder="Rename selected company"
+                className="h-9"
+              />
+              <Button type="button" size="sm" onClick={handleRenameCompany} className="h-9">
+                Rename
+              </Button>
+              <Button type="button" size="sm" variant="destructive" onClick={handleDeleteCompany} className="h-9">
+                Delete
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Logo Section */}
         <Card>
           <CardHeader className="py-3 px-4">
@@ -288,28 +400,37 @@ export default function Settings() {
           <CardHeader className="py-3 px-4">
             <CardTitle className="text-sm flex items-center gap-2">
               <Info className="h-4 w-4 text-primary" />
-              App Version & Updates
+              About BookIt
             </CardTitle>
           </CardHeader>
-          <CardContent className="px-4 pb-4">
+          <CardContent className="px-4 pb-4 space-y-3">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium">Current Version</p>
-                <p className="text-xs text-muted-foreground">v{currentVersion || 'N/A'}</p>
+                <p className="text-xs text-muted-foreground">v{currentVersion}</p>
               </div>
-              <Button type="button" variant="outline" size="sm" onClick={handleCheckUpdates} disabled={checking} className="gap-1.5">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleCheckUpdates}
+                disabled={checking}
+                className="gap-1.5"
+              >
                 <RefreshCw className={`h-3.5 w-3.5 ${checking ? 'animate-spin' : ''}`} />
                 {checking ? 'Checking...' : 'Check for Updates'}
               </Button>
             </div>
-            <p className="text-xs text-muted-foreground mt-2">
-              The app checks for updates automatically in the background and shows a notification when available.
+            <p className="text-xs text-muted-foreground">
+              Updates are downloaded automatically. You'll be notified when a new version is available.
             </p>
           </CardContent>
         </Card>
 
         {/* Backup & Restore */}
         <BackupRestore />
+
+        {/* Save Button */}
         <div className="flex justify-end">
           <Button type="submit" size="sm" className="gap-1.5">
             <Save className="h-4 w-4" />

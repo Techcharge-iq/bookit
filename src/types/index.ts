@@ -92,23 +92,6 @@ export interface Payment {
   createdAt: string;
 }
 
-// Voucher types
-export type VoucherType = 'expense' | 'contra' | 'loan_given' | 'loan_received';
-
-export interface Voucher {
-  id: string;
-  number: string;
-  type: VoucherType;
-  date: string;
-  partyName: string;
-  amount: number;
-  narration: string;
-  method: PaymentMethod;
-  reference?: string;
-  details: Record<string, any>;
-  createdAt: string;
-}
-
 // Double-Entry Accounting types
 export type AccountType = 'asset' | 'liability' | 'income' | 'expense' | 'equity';
 
@@ -125,7 +108,7 @@ export interface JournalEntry {
   id: string;
   date: string;
   reference: string;
-  referenceType: 'sales_invoice' | 'purchase_invoice' | 'receipt' | 'payment' | 'expense' | 'contra' | 'loan_given' | 'loan_received';
+  referenceType: 'sales_invoice' | 'purchase_invoice' | 'receipt' | 'payment';
   referenceId: string;
   description: string;
   lines: JournalLine[];
@@ -144,15 +127,19 @@ export const DEFAULT_ACCOUNTS: Account[] = [
   { id: 'acc-1000', code: '1000', name: 'Cash', type: 'asset', isSystem: true },
   { id: 'acc-1010', code: '1010', name: 'Bank', type: 'asset', isSystem: true },
   { id: 'acc-1100', code: '1100', name: 'Accounts Receivable', type: 'asset', isSystem: true },
-  { id: 'acc-1200', code: '1200', name: 'Loans & Advances', type: 'asset', isSystem: true },
   { id: 'acc-2000', code: '2000', name: 'Accounts Payable', type: 'liability', isSystem: true },
-  { id: 'acc-2100', code: '2100', name: 'Loans Payable', type: 'liability', isSystem: true },
   { id: 'acc-3000', code: '3000', name: "Owner's Equity", type: 'equity', isSystem: true },
   { id: 'acc-3100', code: '3100', name: 'Retained Earnings', type: 'equity', isSystem: true },
   { id: 'acc-4000', code: '4000', name: 'Sales Revenue', type: 'income', isSystem: true },
   { id: 'acc-5000', code: '5000', name: 'General Expenses', type: 'expense', isSystem: true },
   { id: 'acc-5100', code: '5100', name: 'Cost of Goods', type: 'expense', isSystem: true },
 ];
+
+// Company definitions
+export interface Company {
+  id: string;
+  name: string;
+}
 
 // Business settings
 export interface BusinessSettings {
@@ -173,3 +160,46 @@ export const currencySymbols: Record<BusinessSettings['currency'], string> = {
   GBP: '£',
   OMR: 'ر.ع.',
 };
+
+// Electron API types
+export interface ElectronAPI {
+  // Database operations
+  query: (sql: string, params?: any[]) => Promise<any[]>;
+  getParties: () => Promise<any[]>;
+  saveInvoice: (invoice: any) => Promise<any>;
+  getInvoices: () => Promise<any[]>;
+  saveQuotation: (quotation: any) => Promise<any>;
+  getQuotations: () => Promise<any[]>;
+  savePurchaseInvoice: (purchaseInvoice: any) => Promise<any>;
+  getPurchaseInvoices: () => Promise<any[]>;
+  savePayment: (payment: any) => Promise<any>;
+  getPayments: () => Promise<any[]>;
+  getAccounts: () => Promise<any[]>;
+  saveAccount: (account: any) => Promise<any>;
+  getBusinessSettings: () => Promise<any>;
+  saveBusinessSettings: (settings: any) => Promise<void>;
+  showSaveDialog: (options: any) => Promise<any>;
+  showOpenDialog: (options: any) => Promise<any>;
+  getDbPath: () => Promise<string>;
+  backup: (destinationPath: string) => Promise<void>;
+  restore: (backupPath: string) => Promise<void>;
+
+  // Update methods
+  update: {
+    checkForUpdates: () => Promise<any>;
+    downloadUpdate: () => Promise<any>;
+    installUpdate: () => Promise<any>;
+    getVersion: () => Promise<string>;
+    onUpdateAvailable: (callback: (info: any) => void) => void;
+    onUpdateProgress: (callback: (percent: number) => void) => void;
+    onUpdateReady: (callback: () => void) => void;
+    onUpdateError: (callback: (error: string) => void) => void;
+  };
+}
+
+// Extend Window interface
+declare global {
+  interface Window {
+    electronAPI: ElectronAPI;
+  }
+}

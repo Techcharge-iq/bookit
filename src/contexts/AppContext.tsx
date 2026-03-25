@@ -1,9 +1,10 @@
 import React, { createContext, useContext, ReactNode } from 'react';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
-import type { Client, Quotation, Invoice, PurchaseInvoice, BusinessSettings, Payment, Account, JournalEntry, JournalLine, Voucher, VoucherType } from '@/types';
+import type { Client, Quotation, Invoice, PurchaseInvoice, BusinessSettings, Payment, Account, JournalEntry, JournalLine, Company } from '@/types';
 import { DEFAULT_ACCOUNTS } from '@/types';
 
 interface AppContextType {
+  // Clients
   clients: Client[];
   setClients: (clients: Client[] | ((prev: Client[]) => Client[])) => void;
   addClient: (client: Client) => void;
@@ -12,18 +13,24 @@ interface AppContextType {
   getClient: (id: string) => Client | undefined;
   getCustomers: () => Client[];
   getVendors: () => Client[];
+  
+  // Quotations
   quotations: Quotation[];
   setQuotations: (quotations: Quotation[] | ((prev: Quotation[]) => Quotation[])) => void;
   addQuotation: (quotation: Quotation) => void;
   updateQuotation: (quotation: Quotation) => void;
   deleteQuotation: (id: string) => void;
   getQuotation: (id: string) => Quotation | undefined;
+  
+  // Invoices
   invoices: Invoice[];
   setInvoices: (invoices: Invoice[] | ((prev: Invoice[]) => Invoice[])) => void;
   addInvoice: (invoice: Invoice) => void;
   updateInvoice: (invoice: Invoice) => void;
   deleteInvoice: (id: string) => void;
   getInvoice: (id: string) => Invoice | undefined;
+
+  // Purchase Invoices
   purchaseInvoices: PurchaseInvoice[];
   setPurchaseInvoices: (pi: PurchaseInvoice[] | ((prev: PurchaseInvoice[]) => PurchaseInvoice[])) => void;
   addPurchaseInvoice: (pi: PurchaseInvoice) => void;
@@ -31,13 +38,14 @@ interface AppContextType {
   deletePurchaseInvoice: (id: string) => void;
   getPurchaseInvoice: (id: string) => PurchaseInvoice | undefined;
   generatePurchaseInvoiceNumber: () => string;
+  
+  // Payments
   payments: Payment[];
   addPayment: (payment: Payment) => void;
   getPaymentsByInvoice: (invoiceId: string) => Payment[];
   getPaymentsByClient: (clientId: string) => Payment[];
-  vouchers: Voucher[];
-  addVoucher: (voucher: Voucher) => void;
-  generateVoucherNumber: (type: VoucherType) => string;
+
+  // Accounts & Journal
   accounts: Account[];
   setAccounts: (accounts: Account[] | ((prev: Account[]) => Account[])) => void;
   addAccount: (account: Account) => void;
@@ -45,8 +53,20 @@ interface AppContextType {
   journalEntries: JournalEntry[];
   createJournalEntry: (entry: JournalEntry) => void;
   getAccountBalance: (accountId: string) => number;
+  
+  // Company management
+  companies: Company[];
+  selectedCompanyId: string;
+  setSelectedCompanyId: (companyId: string) => void;
+  createCompany: (name: string) => void;
+  updateCompany: (id: string, name: string) => void;
+  deleteCompany: (id: string) => void;
+
+  // Business Settings
   settings: BusinessSettings;
   setSettings: (settings: BusinessSettings | ((prev: BusinessSettings) => BusinessSettings)) => void;
+  
+  // Utility functions
   generateQuotationNumber: () => string;
   generateInvoiceNumber: () => string;
 }
@@ -62,16 +82,21 @@ const defaultSettings: BusinessSettings = {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [clients, setClients] = useLocalStorage<Client[]>('app_clients', []);
-  const [quotations, setQuotations] = useLocalStorage<Quotation[]>('app_quotations', []);
-  const [invoices, setInvoices] = useLocalStorage<Invoice[]>('app_invoices', []);
-  const [purchaseInvoices, setPurchaseInvoices] = useLocalStorage<PurchaseInvoice[]>('app_purchase_invoices', []);
-  const [payments, setPayments] = useLocalStorage<Payment[]>('app_payments', []);
-  const [vouchers, setVouchers] = useLocalStorage<Voucher[]>('app_vouchers', []);
-  const [accounts, setAccounts] = useLocalStorage<Account[]>('app_accounts', DEFAULT_ACCOUNTS);
-  const [journalEntries, setJournalEntries] = useLocalStorage<JournalEntry[]>('app_journal_entries', []);
-  const [settings, setSettings] = useLocalStorage<BusinessSettings>('app_settings', defaultSettings);
+  const [companies, setCompanies] = useLocalStorage<Company[]>('app_companies', [{ id: 'default', name: 'Default Company' }]);
+  const [selectedCompanyId, setSelectedCompanyId] = useLocalStorage<string>('app_selected_company_id', 'default');
 
+  const companyKey = (key: string) => `app_${key}_${selectedCompanyId}`;
+
+  const [clients, setClients] = useLocalStorage<Client[]>(companyKey('clients'), []);
+  const [quotations, setQuotations] = useLocalStorage<Quotation[]>(companyKey('quotations'), []);
+  const [invoices, setInvoices] = useLocalStorage<Invoice[]>(companyKey('invoices'), []);
+  const [purchaseInvoices, setPurchaseInvoices] = useLocalStorage<PurchaseInvoice[]>(companyKey('purchase_invoices'), []);
+  const [payments, setPayments] = useLocalStorage<Payment[]>(companyKey('payments'), []);
+  const [accounts, setAccounts] = useLocalStorage<Account[]>(companyKey('accounts'), DEFAULT_ACCOUNTS);
+  const [journalEntries, setJournalEntries] = useLocalStorage<JournalEntry[]>(companyKey('journal_entries'), []);
+  const [settings, setSettings] = useLocalStorage<BusinessSettings>(companyKey('settings'), defaultSettings);
+
+  // Client operations
   const addClient = (client: Client) => setClients((prev) => [...prev, client]);
   const updateClient = (client: Client) => setClients((prev) => prev.map((c) => (c.id === client.id ? client : c)));
   const deleteClient = (id: string) => setClients((prev) => prev.filter((c) => c.id !== id));
@@ -79,21 +104,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const getCustomers = () => clients.filter((c) => c.type === 'customer' || c.type === 'both');
   const getVendors = () => clients.filter((c) => c.type === 'vendor' || c.type === 'both');
 
+  // Quotation operations
   const addQuotation = (quotation: Quotation) => setQuotations((prev) => [...prev, quotation]);
   const updateQuotation = (quotation: Quotation) => setQuotations((prev) => prev.map((q) => (q.id === quotation.id ? quotation : q)));
   const deleteQuotation = (id: string) => setQuotations((prev) => prev.filter((q) => q.id !== id));
   const getQuotation = (id: string) => quotations.find((q) => q.id === id);
 
+  // Invoice operations
   const addInvoice = (invoice: Invoice) => setInvoices((prev) => [...prev, invoice]);
   const updateInvoice = (invoice: Invoice) => setInvoices((prev) => prev.map((i) => (i.id === invoice.id ? invoice : i)));
   const deleteInvoice = (id: string) => setInvoices((prev) => prev.filter((i) => i.id !== id));
   const getInvoice = (id: string) => invoices.find((i) => i.id === id);
 
+  // Purchase Invoice operations
   const addPurchaseInvoice = (pi: PurchaseInvoice) => setPurchaseInvoices((prev) => [...prev, pi]);
   const updatePurchaseInvoice = (pi: PurchaseInvoice) => setPurchaseInvoices((prev) => prev.map((p) => (p.id === pi.id ? pi : p)));
   const deletePurchaseInvoice = (id: string) => setPurchaseInvoices((prev) => prev.filter((p) => p.id !== id));
   const getPurchaseInvoice = (id: string) => purchaseInvoices.find((p) => p.id === id);
 
+  // Payment operations
   const addPayment = (payment: Payment) => setPayments((prev) => [...prev, payment]);
   const getPaymentsByInvoice = (invoiceId: string) => payments.filter((p) => p.invoiceId === invoiceId);
   const getPaymentsByClient = (clientId: string) => {
@@ -102,24 +131,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return payments.filter((p) => clientInvoiceIds.includes(p.invoiceId) || clientPurchaseIds.includes(p.invoiceId));
   };
 
-  const addVoucher = (voucher: Voucher) => setVouchers((prev) => [...prev, voucher]);
-
-  const generateVoucherNumber = (type: VoucherType) => {
-    const now = new Date();
-    const yyyy = now.getFullYear();
-    const mm = String(now.getMonth() + 1).padStart(2, '0');
-    const prefixMap: Record<VoucherType, string> = {
-      expense: 'EXP', contra: 'CTR', loan_given: 'LGT', loan_received: 'LNR',
-    };
-    const prefix = prefixMap[type];
-    const pattern = `${prefix}-${yyyy}-${mm}`;
-    const count = vouchers.filter((v) => v.number.startsWith(pattern)).length + 1;
-    return `${pattern}-${count.toString().padStart(3, '0')}`;
-  };
-
+  // Account operations
   const addAccount = (account: Account) => setAccounts((prev) => [...prev, account]);
   const deleteAccount = (id: string) => setAccounts((prev) => prev.filter((a) => a.id !== id || a.isSystem));
 
+  // Journal operations
   const createJournalEntry = (entry: JournalEntry) => setJournalEntries((prev) => [...prev, entry]);
   
   const getAccountBalance = (accountId: string) => {
@@ -134,6 +150,43 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return balance;
   };
 
+  // Company operations
+  const createCompany = (name: string) => {
+    const id = (Math.random() * 1e9).toFixed(0);
+    const newCompany: Company = { id, name };
+    setCompanies((prev) => [...prev, newCompany]);
+    setSelectedCompanyId(id);
+  };
+
+  const updateCompany = (id: string, name: string) => {
+    setCompanies((prev) => prev.map((company) => (company.id === id ? { ...company, name } : company)));
+  };
+
+  const deleteCompany = (id: string) => {
+    setCompanies((prev) => {
+      const updated = prev.filter((company) => company.id !== id);
+      if (id === selectedCompanyId) {
+        const fallback = updated[0] ?? { id: 'default', name: 'Default Company' };
+        setSelectedCompanyId(fallback.id);
+      }
+      return updated;
+    });
+
+    try {
+      window.localStorage.removeItem(`app_clients_${id}`);
+      window.localStorage.removeItem(`app_quotations_${id}`);
+      window.localStorage.removeItem(`app_invoices_${id}`);
+      window.localStorage.removeItem(`app_purchase_invoices_${id}`);
+      window.localStorage.removeItem(`app_payments_${id}`);
+      window.localStorage.removeItem(`app_accounts_${id}`);
+      window.localStorage.removeItem(`app_journal_entries_${id}`);
+      window.localStorage.removeItem(`app_settings_${id}`);
+    } catch (error) {
+      console.warn('Failed to remove company data', error);
+    }
+  };
+
+  // Generate unique numbers
   const generateQuotationNumber = () => {
     const year = new Date().getFullYear();
     const count = quotations.filter((q) => q.number.includes(`QT-${year}`)).length + 1;
@@ -155,12 +208,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
   return (
     <AppContext.Provider
       value={{
+        companies, selectedCompanyId, setSelectedCompanyId, createCompany, updateCompany, deleteCompany,
         clients, setClients, addClient, updateClient, deleteClient, getClient, getCustomers, getVendors,
         quotations, setQuotations, addQuotation, updateQuotation, deleteQuotation, getQuotation,
         invoices, setInvoices, addInvoice, updateInvoice, deleteInvoice, getInvoice,
         purchaseInvoices, setPurchaseInvoices, addPurchaseInvoice, updatePurchaseInvoice, deletePurchaseInvoice, getPurchaseInvoice, generatePurchaseInvoiceNumber,
         payments, addPayment, getPaymentsByInvoice, getPaymentsByClient,
-        vouchers, addVoucher, generateVoucherNumber,
         accounts, setAccounts, addAccount, deleteAccount,
         journalEntries, createJournalEntry, getAccountBalance,
         settings, setSettings,
