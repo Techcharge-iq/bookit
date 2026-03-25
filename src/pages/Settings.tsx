@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { useEffect, useState } from 'react';
 import {
   Select,
   SelectContent,
@@ -13,12 +14,45 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import type { BusinessSettings } from '@/types';
-import { Building2, Save, Upload, Trash2, Globe, Mail, Phone, MapPin, FileText } from 'lucide-react';
+import { Building2, Save, Upload, Trash2, Globe, Mail, Phone, MapPin, FileText, RefreshCw, Info } from 'lucide-react';
 import BackupRestore from '@/components/BackupRestore';
 
 export default function Settings() {
   const { settings, setSettings } = useApp();
   const { toast } = useToast();
+  const [currentVersion, setCurrentVersion] = useState('');
+  const [checking, setChecking] = useState(false);
+
+  useEffect(() => {
+    const loadVersion = async () => {
+      try {
+        const version = await window.electronAPI.update.getVersion();
+        setCurrentVersion(version);
+      } catch (error) {
+        console.error('Failed to load app version', error);
+      }
+    };
+    loadVersion();
+  }, []);
+
+  const handleCheckUpdates = async () => {
+    setChecking(true);
+    try {
+      await window.electronAPI.update.checkForUpdates();
+      toast({
+        title: 'Update check completed',
+        description: 'If an update is available, you will be notified.',
+      });
+    } catch (error) {
+      toast({
+        title: 'Update check failed',
+        description: 'Unable to check for updates. Check internet connection.',
+        variant: 'destructive',
+      });
+    } finally {
+      setTimeout(() => setChecking(false), 1200);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -249,10 +283,33 @@ export default function Settings() {
           </CardContent>
         </Card>
 
+        {/* About & Updates */}
+        <Card>
+          <CardHeader className="py-3 px-4">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Info className="h-4 w-4 text-primary" />
+              App Version & Updates
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 pb-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium">Current Version</p>
+                <p className="text-xs text-muted-foreground">v{currentVersion || 'N/A'}</p>
+              </div>
+              <Button type="button" variant="outline" size="sm" onClick={handleCheckUpdates} disabled={checking} className="gap-1.5">
+                <RefreshCw className={`h-3.5 w-3.5 ${checking ? 'animate-spin' : ''}`} />
+                {checking ? 'Checking...' : 'Check for Updates'}
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              The app checks for updates automatically in the background and shows a notification when available.
+            </p>
+          </CardContent>
+        </Card>
+
         {/* Backup & Restore */}
         <BackupRestore />
-
-        {/* Save Button */}
         <div className="flex justify-end">
           <Button type="submit" size="sm" className="gap-1.5">
             <Save className="h-4 w-4" />
