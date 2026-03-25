@@ -226,6 +226,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         payments, addPayment, getPaymentsByInvoice, getPaymentsByClient,
         accounts, setAccounts, addAccount, deleteAccount,
         journalEntries, createJournalEntry, getAccountBalance,
+        vouchers, addVoucher, generateVoucherNumber,
         settings, setSettings,
         generateQuotationNumber, generateInvoiceNumber,
       }}
