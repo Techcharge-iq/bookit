@@ -21,6 +21,7 @@ import { currencySymbols, type Quotation, type LineItem, type QuotationStatus, t
 import { Plus, Trash2, Save, ArrowLeft, Send, Check, X, Download, Share2, Edit2, CheckCircle } from 'lucide-react';
 import { generatePDF, shareViaWhatsApp } from '@/lib/documentUtils';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { ItemPicker } from '@/components/ItemPicker';
 
 export default function QuotationForm() {
   const { id } = useParams();
@@ -53,6 +54,8 @@ export default function QuotationForm() {
   const [tempItem, setTempItem] = useState<LineItem>({ id: '', name: '', description: '', quantity: 1, rate: 0, total: 0 });
 
   const netTotal = useMemo(() => items.reduce((sum, item) => sum + item.total, 0), [items]);
+  const vatTotal = useMemo(() => items.reduce((sum, item) => sum + (item.vatAmount ?? 0), 0), [items]);
+  const grandTotal = netTotal + vatTotal;
 
   const updateItem = (index: number, field: keyof LineItem, value: string | number) => {
     setItems((prev) => {
@@ -61,10 +64,34 @@ export default function QuotationForm() {
       if (field === 'quantity' || field === 'rate') {
         item[field] = Number(value) || 0;
         item.total = item.quantity * item.rate;
+        item.vatAmount = item.vatApplicable ? (item.total * (item.vatPercentage ?? 0)) / 100 : 0;
       } else {
         (item as any)[field] = value;
       }
       updated[index] = item;
+      return updated;
+    });
+  };
+
+  const selectItemForRow = (index: number, picked: { id: string; name: string; description?: string; rate: number; vatApplicable: boolean; vatPercentage: number; }) => {
+    setItems((prev) => {
+      const updated = [...prev];
+      const cur = updated[index];
+      const qty = cur.quantity || 1;
+      const rate = picked.rate;
+      const total = qty * rate;
+      const vatAmount = picked.vatApplicable ? (total * picked.vatPercentage) / 100 : 0;
+      updated[index] = {
+        ...cur,
+        itemId: picked.id,
+        name: picked.name,
+        description: picked.description ?? cur.description,
+        rate,
+        total,
+        vatApplicable: picked.vatApplicable,
+        vatPercentage: picked.vatPercentage,
+        vatAmount,
+      };
       return updated;
     });
   };
