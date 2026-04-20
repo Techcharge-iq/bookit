@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { currencySymbols } from '@/types';
 import {
   ArrowUpRight, ArrowDownLeft, Receipt, ArrowLeftRight,
-  HandCoins, Landmark, TrendingUp, Clock, Calendar,
+  HandCoins, Landmark, TrendingUp, Clock, Calendar, BookOpen, Package,
 } from 'lucide-react';
 
 const voucherCards = [
@@ -16,6 +16,8 @@ const voucherCards = [
   { title: 'Contra', desc: 'Transfer between accounts', icon: ArrowLeftRight, color: '#FFB347', href: '/vouchers/contra/new' },
   { title: 'Loan Given', desc: 'Record loans & advances', icon: HandCoins, color: '#59C7EB', href: '/vouchers/loan-given/new' },
   { title: 'Loan Received', desc: 'Record loans received', icon: Landmark, color: '#FFA726', href: '/vouchers/loan-received/new' },
+  { title: 'Journal', desc: 'Non-cash adjustment entries', icon: BookOpen, color: '#7C83FD', href: '/vouchers/journal' },
+  { title: 'Item Report', desc: 'Stock & VAT per item', icon: Package, color: '#26C281', href: '/reports/items' },
 ];
 
 export default function VoucherDashboard() {
@@ -51,6 +53,7 @@ export default function VoucherDashboard() {
     expense: 'bg-purple-100 text-purple-700', contra: 'bg-orange-100 text-orange-700',
     loan_given: 'bg-sky-100 text-sky-700', loan_received: 'bg-amber-100 text-amber-700',
     receipt: 'bg-emerald-100 text-emerald-700', payment: 'bg-red-100 text-red-700',
+    journal: 'bg-indigo-100 text-indigo-700',
   };
 
   return (

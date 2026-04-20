@@ -25,6 +25,9 @@ import ExpensesVoucher from "./pages/ExpensesVoucher";
 import ContraVoucher from "./pages/ContraVoucher";
 import LoanGivenVoucher from "./pages/LoanGivenVoucher";
 import LoanReceivedVoucher from "./pages/LoanReceivedVoucher";
+import JournalVoucher from "./pages/JournalVoucher";
+import ItemsList from "./pages/ItemsList";
+import ItemReport from "./pages/reports/ItemReport";
 import ChartOfAccounts from "./pages/ChartOfAccounts";
 import AccountStatement from "./pages/AccountStatement";
 import Settings from "./pages/Settings";
@@ -84,6 +87,8 @@ const App = () => (
                   <Route path="/vouchers/contra/new" element={<ErrorBoundary inline><ContraVoucher /></ErrorBoundary>} />
                   <Route path="/vouchers/loan-given/new" element={<ErrorBoundary inline><LoanGivenVoucher /></ErrorBoundary>} />
                   <Route path="/vouchers/loan-received/new" element={<ErrorBoundary inline><LoanReceivedVoucher /></ErrorBoundary>} />
+                  <Route path="/vouchers/journal" element={<ErrorBoundary inline><JournalVoucher /></ErrorBoundary>} />
+                  <Route path="/items" element={<ErrorBoundary inline><ItemsList /></ErrorBoundary>} />
                   <Route path="/clients" element={<ErrorBoundary inline><ClientsList /></ErrorBoundary>} />
                   <Route path="/clients/:id/statement" element={<ErrorBoundary inline><ClientStatement /></ErrorBoundary>} />
                   <Route path="/accounts" element={<ErrorBoundary inline><ChartOfAccounts /></ErrorBoundary>} />
@@ -92,6 +97,7 @@ const App = () => (
                   <Route path="/reports/balance-sheet" element={<ErrorBoundary inline><BalanceSheet /></ErrorBoundary>} />
                   <Route path="/reports/trial-balance" element={<ErrorBoundary inline><TrialBalance /></ErrorBoundary>} />
                   <Route path="/reports/aging" element={<ErrorBoundary inline><AgingReport /></ErrorBoundary>} />
+                  <Route path="/reports/items" element={<ErrorBoundary inline><ItemReport /></ErrorBoundary>} />
                   <Route path="/settings" element={<ErrorBoundary inline><Settings /></ErrorBoundary>} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
