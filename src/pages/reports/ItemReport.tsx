@@ -38,7 +38,7 @@ interface DrillRow {
 
 export default function ItemReport() {
   const navigate = useNavigate();
-  const { items, invoices, purchaseInvoices, quotations, settings, getClient } = useApp();
+  const { items, invoices, purchaseInvoices, quotations, settings } = useApp();
   const currencySymbol = currencySymbols[settings.currency];
 
   const today = new Date().toISOString().split('T')[0];
