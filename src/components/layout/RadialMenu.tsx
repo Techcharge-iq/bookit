@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, FileText, Receipt, Users, Settings, ShoppingCart,
-  BookOpen, BarChart3, Menu, X, Wallet,
+  BookOpen, BarChart3, Menu, X, Wallet, Package,
 } from 'lucide-react';
 
 const navItems = [
@@ -12,6 +12,7 @@ const navItems = [
   { name: 'Quotations', href: '/quotations', icon: FileText },
   { name: 'Sales', href: '/invoices', icon: Receipt },
   { name: 'Purchases', href: '/purchases', icon: ShoppingCart },
+  { name: 'Items', href: '/items', icon: Package },
   { name: 'Vouchers', href: '/vouchers', icon: Wallet },
   { name: 'Parties', href: '/clients', icon: Users },
   { name: 'Accounts', href: '/accounts', icon: BookOpen },

@@ -18,6 +18,7 @@ export interface Client {
 // Line item for quotations/invoices
 export interface LineItem {
   id: string;
+  itemId?: string;
   name: string;
   description: string;
   quantity: number;
@@ -26,6 +27,24 @@ export interface LineItem {
   cost?: number;
   stock?: number;
   reorderLevel?: number;
+  vatApplicable?: boolean;
+  vatPercentage?: number;
+  vatAmount?: number;
+}
+
+// Item master
+export interface Item {
+  id: string;
+  name: string;
+  description?: string;
+  unit?: string;
+  rate: number;
+  cost?: number;
+  stock: number;
+  reorderLevel?: number;
+  vatApplicable: boolean;
+  vatPercentage: number;
+  createdAt: string;
 }
 
 // Quotation types
@@ -108,7 +127,7 @@ export interface Account {
 }
 
 // Voucher types
-export type VoucherType = 'contra' | 'expense' | 'loan_given' | 'loan_received';
+export type VoucherType = 'contra' | 'expense' | 'loan_given' | 'loan_received' | 'journal';
 
 export interface Voucher {
   id: string;
@@ -128,7 +147,7 @@ export interface JournalEntry {
   id: string;
   date: string;
   reference: string;
-  referenceType: 'sales_invoice' | 'purchase_invoice' | 'receipt' | 'payment' | 'contra' | 'expense' | 'loan_given' | 'loan_received';
+  referenceType: 'sales_invoice' | 'purchase_invoice' | 'receipt' | 'payment' | 'contra' | 'expense' | 'loan_given' | 'loan_received' | 'journal';
   referenceId: string;
   description: string;
   lines: JournalLine[];
@@ -181,6 +200,8 @@ export interface BusinessSettings {
   currency: 'INR' | 'USD' | 'EUR' | 'GBP' | 'OMR';
   taxNumber?: string;
   theme?: 'light' | 'dark' | 'system';
+  vatEnabled?: boolean;
+  defaultVatPercentage?: number;
 }
 
 // Currency symbols

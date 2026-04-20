@@ -1,6 +1,6 @@
 import React, { createContext, useContext, ReactNode } from 'react';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
-import type { Client, Quotation, Invoice, PurchaseInvoice, BusinessSettings, Payment, Account, JournalEntry, JournalLine, Company, Voucher, VoucherType, AuditEntry } from '@/types';
+import type { Client, Quotation, Invoice, PurchaseInvoice, BusinessSettings, Payment, Account, JournalEntry, JournalLine, Company, Voucher, VoucherType, AuditEntry, Item } from '@/types';
 import { DEFAULT_ACCOUNTS } from '@/types';
 
 interface AppContextType {
@@ -54,6 +54,15 @@ interface AppContextType {
   vouchers: Voucher[];
   addVoucher: (voucher: Voucher) => void;
   generateVoucherNumber: (type: string) => string;
+  addJournalVoucher: (voucher: Voucher, lines: JournalLine[]) => void;
+
+  // Items
+  items: Item[];
+  addItem: (item: Item) => void;
+  updateItem: (item: Item) => void;
+  deleteItem: (id: string) => void;
+  getItem: (id: string) => Item | undefined;
+  adjustItemStock: (itemId: string, delta: number) => void;
 
   // Journal
   journalEntries: JournalEntry[];
@@ -89,6 +98,8 @@ const defaultSettings: BusinessSettings = {
   address: '',
   currency: 'INR',
   theme: 'system',
+  vatEnabled: true,
+  defaultVatPercentage: 5,
 };
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -107,6 +118,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [accounts, setAccounts] = useLocalStorage<Account[]>(companyKey('accounts'), DEFAULT_ACCOUNTS);
   const [journalEntries, setJournalEntries] = useLocalStorage<JournalEntry[]>(companyKey('journal_entries'), []);
   const [vouchers, setVouchers] = useLocalStorage<Voucher[]>(companyKey('vouchers'), []);
+  const [items, setItems] = useLocalStorage<Item[]>(companyKey('items'), []);
   const [settings, setSettings] = useLocalStorage<BusinessSettings>(companyKey('settings'), defaultSettings);
   const [auditLog, setAuditLog] = useLocalStorage<AuditEntry[]>(companyKey('audit_log'), []);
 
@@ -344,6 +356,44 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const count = vouchers.filter((v) => v.type === type).length + 1;
     return `${prefix}-${year}-${count.toString().padStart(3, '0')}`;
   };
+
+  const addJournalVoucher = (voucher: Voucher, lines: JournalLine[]) => {
+    setVouchers((prev) => [...prev, voucher]);
+    const totalDebit = lines.reduce((s, l) => s + l.debit, 0);
+    const totalCredit = lines.reduce((s, l) => s + l.credit, 0);
+    if (Math.abs(totalDebit - totalCredit) > 0.001) {
+      throw new Error(`Journal voucher unbalanced (Dr ${totalDebit.toFixed(2)} vs Cr ${totalCredit.toFixed(2)})`);
+    }
+    setJournalEntries((prev) => [...prev, {
+      id: crypto.randomUUID(),
+      date: voucher.date,
+      reference: voucher.number,
+      referenceType: 'journal',
+      referenceId: voucher.id,
+      description: voucher.narration || `Journal Voucher ${voucher.number}`,
+      lines,
+      createdAt: new Date().toISOString(),
+    }]);
+    addAuditEntry({
+      type: 'voucher', action: 'created', target: voucher.number,
+      details: 'Journal voucher posted', value: voucher.amount,
+    });
+  };
+
+  // Item operations
+  const addItem = (item: Item) => {
+    setItems((prev) => [...prev, item]);
+  };
+  const updateItem = (item: Item) => {
+    setItems((prev) => prev.map((i) => (i.id === item.id ? item : i)));
+  };
+  const deleteItem = (id: string) => {
+    setItems((prev) => prev.filter((i) => i.id !== id));
+  };
+  const getItem = (id: string) => items.find((i) => i.id === id);
+  const adjustItemStock = (itemId: string, delta: number) => {
+    setItems((prev) => prev.map((i) => (i.id === itemId ? { ...i, stock: i.stock + delta } : i)));
+  };
   
   const getAccountBalance = (accountId: string) => {
     let balance = 0;
@@ -380,7 +430,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     });
 
     try {
-      const keys = ['clients', 'quotations', 'invoices', 'purchase_invoices', 'payments', 'accounts', 'journal_entries', 'settings', 'vouchers'];
+      const keys = ['clients', 'quotations', 'invoices', 'purchase_invoices', 'payments', 'accounts', 'journal_entries', 'settings', 'vouchers', 'items', 'audit_log'];
       keys.forEach(k => window.localStorage.removeItem(`app_${k}_${id}`));
     } catch (error) {
       console.warn('Failed to remove company data', error);
@@ -439,6 +489,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         accounts, setAccounts, addAccount, deleteAccount,
         journalEntries, createJournalEntry, getAccountBalance,
         vouchers, addVoucher, generateVoucherNumber,
+        addJournalVoucher,
+        items, addItem, updateItem, deleteItem, getItem, adjustItemStock,
         settings, setSettings,
         auditLog, addAuditEntry, getRecentAuditLog,
         generateQuotationNumber, generateInvoiceNumber,
