@@ -1,6 +1,6 @@
 import React, { createContext, useContext, ReactNode } from 'react';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
-import type { Client, Quotation, Invoice, PurchaseInvoice, BusinessSettings, Payment, Account, JournalEntry, JournalLine, Company, Voucher, VoucherType, AuditEntry } from '@/types';
+import type { Client, Quotation, Invoice, PurchaseInvoice, BusinessSettings, Payment, Account, JournalEntry, JournalLine, Company, Voucher, VoucherType, AuditEntry, Item } from '@/types';
 import { DEFAULT_ACCOUNTS } from '@/types';
 
 interface AppContextType {
@@ -54,6 +54,15 @@ interface AppContextType {
   vouchers: Voucher[];
   addVoucher: (voucher: Voucher) => void;
   generateVoucherNumber: (type: string) => string;
+  addJournalVoucher: (voucher: Voucher, lines: JournalLine[]) => void;
+
+  // Items
+  items: Item[];
+  addItem: (item: Item) => void;
+  updateItem: (item: Item) => void;
+  deleteItem: (id: string) => void;
+  getItem: (id: string) => Item | undefined;
+  adjustItemStock: (itemId: string, delta: number) => void;
 
   // Journal
   journalEntries: JournalEntry[];
@@ -89,6 +98,8 @@ const defaultSettings: BusinessSettings = {
   address: '',
   currency: 'INR',
   theme: 'system',
+  vatEnabled: true,
+  defaultVatPercentage: 5,
 };
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
