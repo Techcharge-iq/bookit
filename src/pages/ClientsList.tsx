@@ -215,7 +215,7 @@ export default function ClientsList() {
                       <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => e.stopPropagation()}><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader><AlertDialogTitle>Delete Party</AlertDialogTitle><AlertDialogDescription>Delete {client.name}? This cannot be undone.</AlertDialogDescription></AlertDialogHeader>
-                        <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => deleteClient(client.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction></AlertDialogFooter>
+                        <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => { try { deleteClient(client.id); } catch (err) { toast({ title: "Cannot delete client", description: err instanceof Error ? err.message : String(err), variant: "destructive" }); } }} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction></AlertDialogFooter>
                       </AlertDialogContent>
                     </AlertDialog>
                   </div>
@@ -262,7 +262,7 @@ export default function ClientsList() {
                   <AlertDialogTrigger asChild><Button variant="destructive" className="flex-1"><Trash2 className="mr-2 h-4 w-4" />Delete</Button></AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader><AlertDialogTitle>Delete Party</AlertDialogTitle><AlertDialogDescription>Delete {selectedClient.name}? This cannot be undone.</AlertDialogDescription></AlertDialogHeader>
-                    <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => { deleteClient(selectedClient.id); setSelectedClient(null); }} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction></AlertDialogFooter>
+                    <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => { try { deleteClient(selectedClient.id); setSelectedClient(null); } catch (err) { toast({ title: "Cannot delete client", description: err instanceof Error ? err.message : String(err), variant: "destructive" }); } }} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction></AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
               </div>

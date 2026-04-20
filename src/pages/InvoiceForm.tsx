@@ -136,16 +136,21 @@ export default function InvoiceForm() {
       }
 
       // Create journal entry: Debit A/R, Credit Sales Revenue
-      createJournalEntry({
-        id: crypto.randomUUID(), date: now, reference: newInvoice.number,
-        referenceType: 'sales_invoice', referenceId: newInvoice.id,
-        description: `Sales Invoice ${newInvoice.number}`,
-        lines: [
-          { accountId: 'acc-1100', debit: netTotal, credit: 0 },
-          { accountId: 'acc-4000', debit: 0, credit: netTotal },
-        ],
-        createdAt: now,
-      });
+      try {
+        createJournalEntry({
+          id: crypto.randomUUID(), date: now, reference: newInvoice.number,
+          referenceType: 'sales_invoice', referenceId: newInvoice.id,
+          description: `Sales Invoice ${newInvoice.number}`,
+          lines: [
+            { accountId: 'acc-1100', debit: netTotal, credit: 0 },
+            { accountId: 'acc-4000', debit: 0, credit: netTotal },
+          ],
+          createdAt: now,
+        });
+      } catch (err) {
+        console.error('[InvoiceForm] Journal entry failed:', err);
+        toast({ title: 'Journal entry failed', description: err instanceof Error ? err.message : String(err), variant: 'destructive' });
+      }
 
       toast({ title: 'Invoice created', description: `${newInvoice.number} has been created.` });
       navigate(`/invoices/${newInvoice.id}`);
@@ -163,7 +168,15 @@ export default function InvoiceForm() {
   const handleDownloadPDF = async () => {
     if (!existingInvoice) return;
     const client = getClient(clientId);
-    await generatePDF({ type: 'invoice', document: existingInvoice, client, settings });
+    try {
+      await generatePDF({ type: 'invoice', document: existingInvoice, client, settings });
+    } catch (err) {
+      if (err instanceof Error && err.message === 'POPUP_BLOCKED') {
+        toast({ title: 'Popups are blocked', description: 'Please allow popups for this site to download the PDF.', variant: 'destructive' });
+      } else {
+        toast({ title: 'PDF generation failed', description: err instanceof Error ? err.message : String(err), variant: 'destructive' });
+      }
+    }
   };
 
   const handleShare = () => {

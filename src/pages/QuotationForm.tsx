@@ -152,7 +152,15 @@ export default function QuotationForm() {
   const handleDownloadPDF = async () => {
     if (!existingQuotation) return;
     const client = getClient(clientId);
-    await generatePDF({ type: 'quotation', document: existingQuotation, client, settings });
+    try {
+      await generatePDF({ type: 'quotation', document: existingQuotation, client, settings });
+    } catch (err) {
+      if (err instanceof Error && err.message === 'POPUP_BLOCKED') {
+        toast({ title: 'Popups are blocked', description: 'Please allow popups for this site to download the PDF.', variant: 'destructive' });
+      } else {
+        toast({ title: 'PDF generation failed', description: err instanceof Error ? err.message : String(err), variant: 'destructive' });
+      }
+    }
   };
 
   const handleShare = () => {

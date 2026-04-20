@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useApp } from '@/contexts/AppContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,175 +6,230 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
+import {
+  Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle,
+} from '@/components/ui/sheet';
 import { useToast } from '@/hooks/use-toast';
-import { currencySymbols, type Payment, type PaymentMethod } from '@/types';
-import { ArrowLeft, Save, CreditCard, Banknote, Building2, Globe, Smartphone } from 'lucide-react';
+import { currencySymbols, type PurchaseInvoice, type LineItem, type PurchaseInvoiceStatus } from '@/types';
+import { Plus, Trash2, Save, ArrowLeft, Edit2 } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
 
-export default function PaymentForm() {
-  const { id: invoiceId } = useParams();
+export default function PurchaseInvoiceForm() {
+  const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { getInvoice, getClient, payments, addPayment, updateInvoice, settings, createJournalEntry } = useApp();
+  const isMobile = useIsMobile();
+  const {
+    purchaseInvoices, addPurchaseInvoice, updatePurchaseInvoice,
+    getVendors, getClient, settings, generatePurchaseInvoiceNumber, createJournalEntry,
+  } = useApp();
 
-  const invoice = invoiceId ? getInvoice(invoiceId) : undefined;
-  const client = invoice ? getClient(invoice.clientId) : undefined;
+  const isEditing = id && id !== 'new';
+  const existing = isEditing ? purchaseInvoices.find((p) => p.id === id) : null;
   const currencySymbol = currencySymbols[settings.currency];
+  const vendors = getVendors();
 
-  const existingPayments = useMemo(
-    () => (invoice ? payments.filter((p) => p.invoiceId === invoice.id) : []),
-    [invoice, payments]
+  const defaultDueDate = new Date();
+  defaultDueDate.setDate(defaultDueDate.getDate() + 30);
+
+  const [vendorId, setVendorId] = useState(existing?.vendorId || '');
+  const [dueDate, setDueDate] = useState(existing?.dueDate || defaultDueDate.toISOString().split('T')[0]);
+  const [notes, setNotes] = useState(existing?.notes || '');
+  const [terms, setTerms] = useState(existing?.terms || '');
+  const [items, setItems] = useState<LineItem[]>(
+    existing?.items || [{ id: crypto.randomUUID(), name: '', description: '', quantity: 1, rate: 0, total: 0 }]
   );
 
-  const totalPaid = existingPayments.reduce((s, p) => s + p.amount, 0);
-  const remaining = (invoice?.netTotal || 0) - totalPaid;
+  const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
+  const [isAddItemSheetOpen, setIsAddItemSheetOpen] = useState(false);
+  const [tempItem, setTempItem] = useState<LineItem>({ id: '', name: '', description: '', quantity: 1, rate: 0, total: 0 });
 
-  const [amount, setAmount] = useState(remaining > 0 ? remaining : 0);
-  const [method, setMethod] = useState<PaymentMethod>('bank');
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [reference, setReference] = useState('');
-  const [notes, setNotes] = useState('');
+  const netTotal = useMemo(() => items.reduce((sum, item) => sum + item.total, 0), [items]);
+  const currentStatus = existing?.status || 'draft';
 
-  if (!invoice) {
-    return (
-      <div className="flex flex-col items-center justify-center py-12">
-        <p className="text-sm text-muted-foreground">Invoice not found</p>
-        <Button variant="outline" size="sm" className="mt-3" onClick={() => navigate('/invoices')}>Back to Invoices</Button>
-      </div>
-    );
-  }
+  const updateItem = (index: number, field: keyof LineItem, value: string | number) => {
+    setItems((prev) => {
+      const updated = [...prev];
+      const item = { ...updated[index] };
+      if (field === 'quantity' || field === 'rate') { item[field] = Number(value) || 0; item.total = item.quantity * item.rate; }
+      else { (item as any)[field] = value; }
+      updated[index] = item;
+      return updated;
+    });
+  };
+
+  const addItem = () => {
+    if (isMobile) { setTempItem({ id: crypto.randomUUID(), name: '', description: '', quantity: 1, rate: 0, total: 0 }); setIsAddItemSheetOpen(true); }
+    else { setItems((prev) => [...prev, { id: crypto.randomUUID(), name: '', description: '', quantity: 1, rate: 0, total: 0 }]); }
+  };
+
+  const saveMobileItem = () => {
+    if (!tempItem.name.trim()) { toast({ title: 'Error', description: 'Item name is required', variant: 'destructive' }); return; }
+    const itemToSave = { ...tempItem, total: tempItem.quantity * tempItem.rate };
+    if (editingItemIndex !== null) { setItems((prev) => { const u = [...prev]; u[editingItemIndex] = itemToSave; return u; }); setEditingItemIndex(null); }
+    else { setItems((prev) => [...prev, itemToSave]); }
+    setIsAddItemSheetOpen(false);
+  };
+
+  const removeItem = (index: number) => {
+    if (items.length === 1) { toast({ title: 'Cannot remove', description: 'At least one item is required.', variant: 'destructive' }); return; }
+    setItems((prev) => prev.filter((_, i) => i !== index));
+  };
 
   const handleSave = () => {
-    if (amount <= 0) { toast({ title: 'Error', description: 'Amount must be greater than 0', variant: 'destructive' }); return; }
-    if (amount > remaining) { toast({ title: 'Error', description: 'Amount cannot exceed balance', variant: 'destructive' }); return; }
+    if (!vendorId) { toast({ title: 'Error', description: 'Please select a vendor', variant: 'destructive' }); return; }
+    if (items.some((item) => !item.name.trim())) { toast({ title: 'Error', description: 'All items must have a name', variant: 'destructive' }); return; }
 
     const now = new Date().toISOString();
-    const payment: Payment = {
-      id: crypto.randomUUID(), invoiceId: invoice.id, invoiceType: 'sales',
-      amount, date, method, reference, notes, createdAt: now,
-    };
+    if (isEditing && existing) {
+      updatePurchaseInvoice({ ...existing, vendorId, items, netTotal, dueDate, notes, terms, updatedAt: now });
+      toast({ title: 'Bill updated', description: `${existing.number} updated.` });
+    } else {
+      const pi: PurchaseInvoice = {
+        id: crypto.randomUUID(), number: generatePurchaseInvoiceNumber(), vendorId,
+        items, netTotal, status: 'draft', dueDate, notes, terms, createdAt: now, updatedAt: now,
+      };
+      addPurchaseInvoice(pi);
 
-    addPayment(payment);
+      // Journal: Debit Expense, Credit A/P
+      try {
+        createJournalEntry({
+          id: crypto.randomUUID(), date: now, reference: pi.number,
+          referenceType: 'purchase_invoice', referenceId: pi.id,
+          description: `Purchase Invoice ${pi.number}`,
+          lines: [
+            { accountId: 'acc-5000', debit: netTotal, credit: 0 },
+            { accountId: 'acc-2000', debit: 0, credit: netTotal },
+          ],
+          createdAt: now,
+        });
+      } catch (err) {
+        console.error('[Journal] Entry failed:', err);
+        toast({ title: 'Journal entry failed', description: err instanceof Error ? err.message : String(err), variant: 'destructive' });
+      }
 
-    // Determine payment account
-    const paymentAccountId = method === 'cash' ? 'acc-1000' : 'acc-1010';
-
-    // Journal: Debit Cash/Bank, Credit A/R
-    createJournalEntry({
-      id: crypto.randomUUID(), date, reference: `REC-${invoice.number}`,
-      referenceType: 'receipt', referenceId: payment.id,
-      description: `Receipt against ${invoice.number}`,
-      lines: [
-        { accountId: paymentAccountId, debit: amount, credit: 0 },
-        { accountId: 'acc-1100', debit: 0, credit: amount },
-      ],
-      createdAt: now,
-    });
-
-    const newTotalPaid = totalPaid + amount;
-    if (newTotalPaid >= invoice.netTotal) {
-      updateInvoice({ ...invoice, status: 'paid', updatedAt: now });
-    } else if (newTotalPaid > 0) {
-      updateInvoice({ ...invoice, status: 'partial', updatedAt: now });
+      toast({ title: 'Bill created', description: `${pi.number} created.` });
+      navigate(`/purchases/${pi.id}`);
+      return;
     }
-
-    toast({ title: 'Payment recorded', description: `${currencySymbol}${amount.toLocaleString('en-IN')} payment recorded.` });
-    navigate(`/invoices/${invoice.id}`);
   };
 
-  const methodIcons: Record<PaymentMethod, React.ReactNode> = {
-    cash: <Banknote className="h-4 w-4" />,
-    bank: <Building2 className="h-4 w-4" />,
-    card: <CreditCard className="h-4 w-4" />,
-    cheque: <CreditCard className="h-4 w-4" />,
-    online: <Globe className="h-4 w-4" />,
-  };
+  useEffect(() => { if (isEditing && !existing) navigate('/purchases'); }, [isEditing, existing, navigate]);
 
   return (
-    <div className="space-y-3 pb-20 lg:pb-4 max-w-lg mx-auto">
+    <div className="space-y-3 pb-24 lg:pb-4">
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" onClick={() => navigate(`/invoices/${invoice.id}`)} className="h-8 w-8 shrink-0"><ArrowLeft className="h-4 w-4" /></Button>
+        <Button variant="ghost" size="icon" onClick={() => navigate('/purchases')} className="h-8 w-8 shrink-0"><ArrowLeft className="h-4 w-4" /></Button>
         <div className="min-w-0">
-          <h1 className="text-lg font-bold tracking-tight truncate">Record Payment</h1>
-          <p className="text-xs text-muted-foreground truncate">{invoice.number} • {client?.name || 'Unknown Client'}</p>
+          <h1 className="text-lg font-bold tracking-tight truncate">{isEditing ? existing?.number : 'New Bill'}</h1>
+          <p className="text-xs text-muted-foreground hidden sm:block">{isEditing ? 'Edit purchase invoice' : 'Create purchase invoice'}</p>
         </div>
+        {isEditing && <Badge variant="outline" className="text-xs ml-1">{currentStatus}</Badge>}
       </div>
 
       <Card>
-        <CardContent className="p-3">
-          <div className="grid grid-cols-3 gap-2 text-center">
-            <div><p className="text-[10px] text-muted-foreground uppercase">Total</p><p className="text-sm font-bold">{currencySymbol}{invoice.netTotal.toLocaleString('en-IN')}</p></div>
-            <div><p className="text-[10px] text-muted-foreground uppercase">Paid</p><p className="text-sm font-bold text-success">{currencySymbol}{totalPaid.toLocaleString('en-IN')}</p></div>
-            <div><p className="text-[10px] text-muted-foreground uppercase">Balance</p><p className={`text-sm font-bold ${remaining > 0 ? 'text-destructive' : 'text-success'}`}>{currencySymbol}{remaining.toLocaleString('en-IN')}</p></div>
+        <CardHeader className="py-2.5 px-3"><CardTitle className="text-sm">Vendor & Details</CardTitle></CardHeader>
+        <CardContent className="px-3 pb-3">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Vendor *</Label>
+              <Select value={vendorId} onValueChange={setVendorId}>
+                <SelectTrigger className="h-9"><SelectValue placeholder="Select vendor" /></SelectTrigger>
+                <SelectContent>
+                  {vendors.map((v) => <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              {vendors.length === 0 && <p className="text-[10px] text-muted-foreground">No vendors found. Add a vendor in Parties first.</p>}
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Due Date</Label>
+              <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className="h-9" />
+            </div>
           </div>
         </CardContent>
       </Card>
 
       <Card>
-        <CardHeader className="py-2.5 px-3"><CardTitle className="text-sm">Payment Details</CardTitle></CardHeader>
-        <CardContent className="px-3 pb-3 space-y-3">
-          <div className="space-y-1.5">
-            <Label className="text-xs">Amount ({currencySymbol}) *</Label>
-            <div className="flex gap-2">
-              <Input type="number" min="0" max={remaining} step="0.01" value={amount} onChange={(e) => setAmount(Number(e.target.value) || 0)} className="h-9 flex-1" />
-              {remaining > 0 && amount !== remaining && (
-                <Button type="button" variant="outline" size="sm" className="h-9 text-xs shrink-0" onClick={() => setAmount(remaining)}>
-                  Full ({currencySymbol}{remaining.toLocaleString('en-IN')})
-                </Button>
-              )}
+        <CardHeader className="flex flex-row items-center justify-between py-2.5 px-3">
+          <CardTitle className="text-sm">Items</CardTitle>
+          <Button type="button" variant="outline" size="sm" onClick={addItem} className="h-7 text-xs"><Plus className="mr-1 h-3.5 w-3.5" />Add</Button>
+        </CardHeader>
+        <CardContent className="px-3 pb-3">
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead><tr className="border-b text-xs text-muted-foreground"><th className="text-left py-2 w-8">#</th><th className="text-left py-2">Item</th><th className="text-left py-2">Description</th><th className="text-right py-2 w-20">Qty</th><th className="text-right py-2 w-24">Rate</th><th className="text-right py-2 w-24">Total</th><th className="w-8"></th></tr></thead>
+              <tbody>
+                {items.map((item, index) => (
+                  <tr key={item.id} className="border-b last:border-0">
+                    <td className="py-2 text-muted-foreground">{index + 1}</td>
+                    <td className="py-2"><Input value={item.name} onChange={(e) => updateItem(index, 'name', e.target.value)} placeholder="Item name" className="h-8" /></td>
+                    <td className="py-2"><Input value={item.description} onChange={(e) => updateItem(index, 'description', e.target.value)} placeholder="Description" className="h-8" /></td>
+                    <td className="py-2"><Input type="number" min="1" value={item.quantity} onChange={(e) => updateItem(index, 'quantity', e.target.value)} className="h-8 text-right" /></td>
+                    <td className="py-2"><Input type="number" min="0" step="0.01" value={item.rate} onChange={(e) => updateItem(index, 'rate', e.target.value)} className="h-8 text-right" /></td>
+                    <td className="py-2 text-right font-medium">{currencySymbol}{item.total.toLocaleString('en-IN')}</td>
+                    <td className="py-2"><Button type="button" variant="ghost" size="icon" onClick={() => removeItem(index)} className="h-7 w-7"><Trash2 className="h-3.5 w-3.5" /></Button></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="md:hidden space-y-2">
+            {items.map((item, index) => (
+              <div key={item.id} className="p-2.5 rounded-lg border bg-muted/30" onClick={() => { setEditingItemIndex(index); setTempItem({ ...items[index] }); setIsAddItemSheetOpen(true); }}>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{item.name || 'Untitled'}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{item.quantity} × {currencySymbol}{item.rate.toLocaleString('en-IN')}</p>
+                  </div>
+                  <p className="text-sm font-semibold">{currencySymbol}{item.total.toLocaleString('en-IN')}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-3 flex justify-end">
+            <div className="w-full sm:w-48 rounded-lg bg-warning/10 p-2.5">
+              <div className="flex items-center justify-between text-sm font-bold"><span>Net Total</span><span>{currencySymbol}{netTotal.toLocaleString('en-IN')}</span></div>
             </div>
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs">Payment Method</Label>
-            <Select value={method} onValueChange={(v) => setMethod(v as PaymentMethod)}>
-              <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="cash"><span className="flex items-center gap-2">{methodIcons.cash} Cash</span></SelectItem>
-                <SelectItem value="bank"><span className="flex items-center gap-2">{methodIcons.bank} Bank Transfer</span></SelectItem>
-                <SelectItem value="card"><span className="flex items-center gap-2">{methodIcons.card} Card</span></SelectItem>
-                <SelectItem value="cheque"><span className="flex items-center gap-2">{methodIcons.cheque} Cheque</span></SelectItem>
-                <SelectItem value="online"><span className="flex items-center gap-2">{methodIcons.online} Online</span></SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs">Reference / Cheque No.</Label>
-            <Input value={reference} onChange={(e) => setReference(e.target.value)} placeholder="Reference number" className="h-9" />
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs">Payment Date</Label>
-            <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="h-9" />
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs">Notes</Label>
-            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Payment notes..." rows={2} className="resize-none text-sm" />
           </div>
         </CardContent>
       </Card>
 
-      {existingPayments.length > 0 && (
-        <Card>
-          <CardHeader className="py-2.5 px-3"><CardTitle className="text-sm">Previous Payments</CardTitle></CardHeader>
-          <CardContent className="px-3 pb-3">
-            <div className="space-y-1.5">
-              {existingPayments.map((p) => (
-                <div key={p.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/30">
-                  <div><p className="text-xs font-medium capitalize">{p.method}</p><p className="text-[10px] text-muted-foreground">{new Date(p.date).toLocaleDateString()}</p></div>
-                  <p className="text-xs font-semibold text-success">{currencySymbol}{p.amount.toLocaleString('en-IN')}</p>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      <Card>
+        <CardHeader className="py-2.5 px-3"><CardTitle className="text-sm">Notes & Terms</CardTitle></CardHeader>
+        <CardContent className="px-3 pb-3 space-y-3">
+          <div className="space-y-1.5"><Label className="text-xs">Notes</Label><Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Notes..." rows={2} className="resize-none text-sm" /></div>
+          <div className="space-y-1.5"><Label className="text-xs">Terms</Label><Textarea value={terms} onChange={(e) => setTerms(e.target.value)} placeholder="Terms..." rows={2} className="resize-none text-sm" /></div>
+        </CardContent>
+      </Card>
 
       <div className="fixed bottom-16 lg:bottom-0 left-0 right-0 lg:relative p-3 lg:p-0 bg-background border-t lg:border-0 z-30">
-        <Button onClick={handleSave} className="w-full h-10" disabled={remaining <= 0}>
-          <Save className="mr-1.5 h-4 w-4" />Record Payment
+        <Button onClick={handleSave} variant="outline" size="sm" className="w-full h-9">
+          <Save className="mr-1.5 h-4 w-4" />Save {isEditing ? 'Changes' : 'Draft'}
         </Button>
       </div>
+
+      <Sheet open={isAddItemSheetOpen} onOpenChange={(open) => { setIsAddItemSheetOpen(open); if (!open) setEditingItemIndex(null); }}>
+        <SheetContent side="bottom" className="h-auto max-h-[85vh]">
+          <SheetHeader className="text-left"><SheetTitle>{editingItemIndex !== null ? 'Edit Item' : 'Add Item'}</SheetTitle><SheetDescription>Item details</SheetDescription></SheetHeader>
+          <div className="space-y-3 mt-4">
+            <div className="space-y-1.5"><Label className="text-xs">Item Name *</Label><Input value={tempItem.name} onChange={(e) => setTempItem({ ...tempItem, name: e.target.value })} className="h-10" /></div>
+            <div className="space-y-1.5"><Label className="text-xs">Description</Label><Input value={tempItem.description} onChange={(e) => setTempItem({ ...tempItem, description: e.target.value })} className="h-10" /></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5"><Label className="text-xs">Quantity</Label><Input type="number" min="1" value={tempItem.quantity} onChange={(e) => setTempItem({ ...tempItem, quantity: Number(e.target.value) || 1 })} className="h-10" /></div>
+              <div className="space-y-1.5"><Label className="text-xs">Rate</Label><Input type="number" min="0" step="0.01" value={tempItem.rate} onChange={(e) => setTempItem({ ...tempItem, rate: Number(e.target.value) || 0 })} className="h-10" /></div>
+            </div>
+          </div>
+          <div className="flex gap-2 mt-6">
+            {editingItemIndex !== null && <Button variant="destructive" onClick={() => { removeItem(editingItemIndex); setIsAddItemSheetOpen(false); setEditingItemIndex(null); }} className="flex-1"><Trash2 className="mr-1.5 h-4 w-4" />Delete</Button>}
+            <Button onClick={saveMobileItem} className="flex-1"><Save className="mr-1.5 h-4 w-4" />{editingItemIndex !== null ? 'Update' : 'Add'}</Button>
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
+  

@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,6 +7,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AppProvider } from "@/contexts/AppContext";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { useToast } from "@/hooks/use-toast";
 import Dashboard from "./pages/Dashboard";
 import QuotationsList from "./pages/QuotationsList";
 import QuotationForm from "./pages/QuotationForm";
@@ -33,49 +36,71 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+/** Listens for localStorage quota/write errors and shows a destructive toast. */
+function StorageErrorListener() {
+  const { toast } = useToast();
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { message, isQuota } = (e as CustomEvent).detail ?? {};
+      toast({
+        title: isQuota ? 'Storage full' : 'Could not save data',
+        description: message ?? 'An unexpected storage error occurred.',
+        variant: 'destructive',
+      });
+    };
+    window.addEventListener('bookit:storage-error', handler);
+    return () => window.removeEventListener('bookit:storage-error', handler);
+  }, [toast]);
+  return null;
+}
+
 const App = () => (
   <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
     <QueryClientProvider client={queryClient}>
-      <AppProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <AppLayout>
-            <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/quotations" element={<QuotationsList />} />
-              <Route path="/quotations/new" element={<QuotationForm />} />
-              <Route path="/quotations/:id" element={<QuotationForm />} />
-              <Route path="/invoices" element={<InvoicesList />} />
-              <Route path="/invoices/new" element={<InvoiceForm />} />
-              <Route path="/invoices/:id" element={<InvoiceForm />} />
-              <Route path="/invoices/:id/payment" element={<PaymentForm />} />
-              <Route path="/purchases" element={<PurchaseInvoicesList />} />
-              <Route path="/purchases/new" element={<PurchaseInvoiceForm />} />
-              <Route path="/purchases/:id" element={<PurchaseInvoiceForm />} />
-              <Route path="/payments" element={<PaymentsReceipts />} />
-              <Route path="/vouchers" element={<VoucherDashboard />} />
-              <Route path="/vouchers/expenses/new" element={<ExpensesVoucher />} />
-              <Route path="/vouchers/contra/new" element={<ContraVoucher />} />
-              <Route path="/vouchers/loan-given/new" element={<LoanGivenVoucher />} />
-              <Route path="/vouchers/loan-received/new" element={<LoanReceivedVoucher />} />
-              <Route path="/clients" element={<ClientsList />} />
-              <Route path="/clients/:id/statement" element={<ClientStatement />} />
-              <Route path="/accounts" element={<ChartOfAccounts />} />
-              <Route path="/accounts/:id/statement" element={<AccountStatement />} />
-              <Route path="/reports/pnl" element={<ProfitAndLoss />} />
-              <Route path="/reports/balance-sheet" element={<BalanceSheet />} />
-              <Route path="/reports/trial-balance" element={<TrialBalance />} />
-              <Route path="/reports/aging" element={<AgingReport />} />
-              <Route path="/settings" element={<Settings />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </AppLayout>
-        </BrowserRouter>
-      </TooltipProvider>
-    </AppProvider>
-  </QueryClientProvider>
+      {/* Global error boundary — catches anything that escapes the route boundaries */}
+      <ErrorBoundary>
+        <AppProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <StorageErrorListener />
+            <BrowserRouter>
+              <AppLayout>
+                <Routes>
+                  <Route path="/" element={<ErrorBoundary inline><Dashboard /></ErrorBoundary>} />
+                  <Route path="/quotations" element={<ErrorBoundary inline><QuotationsList /></ErrorBoundary>} />
+                  <Route path="/quotations/new" element={<ErrorBoundary inline><QuotationForm /></ErrorBoundary>} />
+                  <Route path="/quotations/:id" element={<ErrorBoundary inline><QuotationForm /></ErrorBoundary>} />
+                  <Route path="/invoices" element={<ErrorBoundary inline><InvoicesList /></ErrorBoundary>} />
+                  <Route path="/invoices/new" element={<ErrorBoundary inline><InvoiceForm /></ErrorBoundary>} />
+                  <Route path="/invoices/:id" element={<ErrorBoundary inline><InvoiceForm /></ErrorBoundary>} />
+                  <Route path="/invoices/:id/payment" element={<ErrorBoundary inline><PaymentForm /></ErrorBoundary>} />
+                  <Route path="/purchases" element={<ErrorBoundary inline><PurchaseInvoicesList /></ErrorBoundary>} />
+                  <Route path="/purchases/new" element={<ErrorBoundary inline><PurchaseInvoiceForm /></ErrorBoundary>} />
+                  <Route path="/purchases/:id" element={<ErrorBoundary inline><PurchaseInvoiceForm /></ErrorBoundary>} />
+                  <Route path="/payments" element={<ErrorBoundary inline><PaymentsReceipts /></ErrorBoundary>} />
+                  <Route path="/vouchers" element={<ErrorBoundary inline><VoucherDashboard /></ErrorBoundary>} />
+                  <Route path="/vouchers/expenses/new" element={<ErrorBoundary inline><ExpensesVoucher /></ErrorBoundary>} />
+                  <Route path="/vouchers/contra/new" element={<ErrorBoundary inline><ContraVoucher /></ErrorBoundary>} />
+                  <Route path="/vouchers/loan-given/new" element={<ErrorBoundary inline><LoanGivenVoucher /></ErrorBoundary>} />
+                  <Route path="/vouchers/loan-received/new" element={<ErrorBoundary inline><LoanReceivedVoucher /></ErrorBoundary>} />
+                  <Route path="/clients" element={<ErrorBoundary inline><ClientsList /></ErrorBoundary>} />
+                  <Route path="/clients/:id/statement" element={<ErrorBoundary inline><ClientStatement /></ErrorBoundary>} />
+                  <Route path="/accounts" element={<ErrorBoundary inline><ChartOfAccounts /></ErrorBoundary>} />
+                  <Route path="/accounts/:id/statement" element={<ErrorBoundary inline><AccountStatement /></ErrorBoundary>} />
+                  <Route path="/reports/pnl" element={<ErrorBoundary inline><ProfitAndLoss /></ErrorBoundary>} />
+                  <Route path="/reports/balance-sheet" element={<ErrorBoundary inline><BalanceSheet /></ErrorBoundary>} />
+                  <Route path="/reports/trial-balance" element={<ErrorBoundary inline><TrialBalance /></ErrorBoundary>} />
+                  <Route path="/reports/aging" element={<ErrorBoundary inline><AgingReport /></ErrorBoundary>} />
+                  <Route path="/settings" element={<ErrorBoundary inline><Settings /></ErrorBoundary>} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </AppLayout>
+            </BrowserRouter>
+          </TooltipProvider>
+        </AppProvider>
+      </ErrorBoundary>
+    </QueryClientProvider>
   </ThemeProvider>
 );
 

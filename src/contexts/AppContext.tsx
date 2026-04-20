@@ -144,6 +144,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const deleteClient = (id: string) => {
     const existing = clients.find((c) => c.id === id);
+    // Guard: warn if open invoices exist for this client
+    const openInvoices = invoices.filter(
+      (i) => i.clientId === id && !['paid', 'cancelled'].includes(i.status)
+    );
+    if (openInvoices.length > 0) {
+      throw new Error(
+        `Cannot delete: this client has ${openInvoices.length} open invoice(s). Please settle or cancel them first.`
+      );
+    }
     setClients((prev) => prev.filter((c) => c.id !== id));
     if (existing) {
       addAuditEntry({
@@ -301,6 +310,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // Journal operations
   const createJournalEntry = (entry: JournalEntry) => {
+    const totalDebit  = entry.lines.reduce((s, l) => s + l.debit,  0);
+    const totalCredit = entry.lines.reduce((s, l) => s + l.credit, 0);
+    if (Math.abs(totalDebit - totalCredit) > 0.001) {
+      const diff = Math.abs(totalDebit - totalCredit).toFixed(2);
+      throw new Error(
+        `Journal entry is unbalanced by ${diff} (debits: ${totalDebit.toFixed(2)}, credits: ${totalCredit.toFixed(2)})`
+      );
+    }
     setJournalEntries((prev) => [...prev, entry]);
     addAuditEntry({
       type: 'account',
@@ -373,20 +390,41 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // Generate unique numbers
   const generateQuotationNumber = () => {
     const year = new Date().getFullYear();
-    const count = quotations.filter((q) => q.number.includes(`QT-${year}`)).length + 1;
-    return `QT-${year}-${count.toString().padStart(3, '0')}`;
+    const prefix = `QT-${year}-`;
+    const existing = new Set(quotations.map((q) => q.number));
+    let count = quotations.filter((q) => q.number.startsWith(prefix)).length + 1;
+    let candidate = `${prefix}${count.toString().padStart(3, '0')}`;
+    while (existing.has(candidate)) {
+      count++;
+      candidate = `${prefix}${count.toString().padStart(3, '0')}`;
+    }
+    return candidate;
   };
 
   const generateInvoiceNumber = () => {
     const year = new Date().getFullYear();
-    const count = invoices.filter((i) => i.number.includes(`INV-${year}`)).length + 1;
-    return `INV-${year}-${count.toString().padStart(3, '0')}`;
+    const prefix = `INV-${year}-`;
+    const existing = new Set(invoices.map((i) => i.number));
+    let count = invoices.filter((i) => i.number.startsWith(prefix)).length + 1;
+    let candidate = `${prefix}${count.toString().padStart(3, '0')}`;
+    while (existing.has(candidate)) {
+      count++;
+      candidate = `${prefix}${count.toString().padStart(3, '0')}`;
+    }
+    return candidate;
   };
 
   const generatePurchaseInvoiceNumber = () => {
     const year = new Date().getFullYear();
-    const count = purchaseInvoices.filter((p) => p.number.includes(`PI-${year}`)).length + 1;
-    return `PI-${year}-${count.toString().padStart(3, '0')}`;
+    const prefix = `PI-${year}-`;
+    const existing = new Set(purchaseInvoices.map((p) => p.number));
+    let count = purchaseInvoices.filter((p) => p.number.startsWith(prefix)).length + 1;
+    let candidate = `${prefix}${count.toString().padStart(3, '0')}`;
+    while (existing.has(candidate)) {
+      count++;
+      candidate = `${prefix}${count.toString().padStart(3, '0')}`;
+    }
+    return candidate;
   };
 
   return (

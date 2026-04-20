@@ -50,16 +50,21 @@ export default function LoanGivenVoucher() {
       createdAt: now,
     });
 
-    createJournalEntry({
-      id: crypto.randomUUID(), date, reference: voucherNumber,
-      referenceType: 'loan_given' as const, referenceId: voucherId,
-      description: `Loan given to ${party?.name}`,
-      lines: [
-        { accountId: 'acc-1200', debit: amount, credit: 0 },
-        { accountId: paymentAccountId, debit: 0, credit: amount },
-      ],
-      createdAt: now,
-    });
+    try {
+      createJournalEntry({
+        id: crypto.randomUUID(), date, reference: voucherNumber,
+        referenceType: 'loan_given' as const, referenceId: voucherId,
+        description: `Loan given to ${party?.name}`,
+        lines: [
+          { accountId: 'acc-1200', debit: amount, credit: 0 },
+          { accountId: paymentAccountId, debit: 0, credit: amount },
+        ],
+        createdAt: now,
+      });
+    } catch (err) {
+      console.error('[Journal] Entry failed:', err);
+      toast({ title: 'Journal entry failed', description: err instanceof Error ? err.message : String(err), variant: 'destructive' });
+    }
 
     toast({ title: 'Loan recorded', description: `${voucherNumber} — ${currencySymbol}${amount.toLocaleString('en-IN')}` });
 

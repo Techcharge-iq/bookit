@@ -103,13 +103,18 @@ export default function ExpensesVoucher() {
       createdAt: now,
     });
 
-    createJournalEntry({
-      id: crypto.randomUUID(), date, reference: voucherNumber,
-      referenceType: 'expense' as const, referenceId: voucherId,
-      description: `Expense: ${payTo}`,
-      lines: journalLines,
-      createdAt: now,
-    });
+    try {
+      createJournalEntry({
+        id: crypto.randomUUID(), date, reference: voucherNumber,
+        referenceType: 'expense' as const, referenceId: voucherId,
+        description: `Expense: ${payTo}`,
+        lines: journalLines,
+        createdAt: now,
+      });
+    } catch (err) {
+      console.error('[Journal] Entry failed:', err);
+      toast({ title: 'Journal entry failed', description: err instanceof Error ? err.message : String(err), variant: 'destructive' });
+    }
 
     toast({ title: 'Expense recorded', description: `${voucherNumber} — ${currencySymbol}${total.toLocaleString('en-IN')}` });
 

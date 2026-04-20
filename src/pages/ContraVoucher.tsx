@@ -62,16 +62,21 @@ export default function ContraVoucher() {
       createdAt: now,
     });
 
-    createJournalEntry({
-      id: crypto.randomUUID(), date, reference: voucherNumber,
-      referenceType: 'contra' as const, referenceId: voucherId,
-      description: `Contra: ${fromAccount?.name} → ${toAccount?.name}`,
-      lines: [
-        { accountId: toAccountId, debit: amount, credit: 0 },
-        { accountId: fromAccountId, debit: 0, credit: amount },
-      ],
-      createdAt: now,
-    });
+    try {
+      createJournalEntry({
+        id: crypto.randomUUID(), date, reference: voucherNumber,
+        referenceType: 'contra' as const, referenceId: voucherId,
+        description: `Contra: ${fromAccount?.name} → ${toAccount?.name}`,
+        lines: [
+          { accountId: toAccountId, debit: amount, credit: 0 },
+          { accountId: fromAccountId, debit: 0, credit: amount },
+        ],
+        createdAt: now,
+      });
+    } catch (err) {
+      console.error('[Journal] Entry failed:', err);
+      toast({ title: 'Journal entry failed', description: err instanceof Error ? err.message : String(err), variant: 'destructive' });
+    }
 
     toast({ title: 'Contra recorded', description: `${voucherNumber} — ${currencySymbol}${amount.toLocaleString('en-IN')}` });
 

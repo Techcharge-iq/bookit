@@ -14,8 +14,7 @@ export async function generatePDF({ type, document, client, settings }: Document
   // Create a printable HTML version
   const printWindow = window.open('', '_blank');
   if (!printWindow) {
-    alert('Please allow popups to download PDF');
-    return;
+    throw new Error('POPUP_BLOCKED');
   }
 
   const isInvoice = type === 'invoice';
