@@ -160,12 +160,12 @@ export default function QuotationForm() {
     const now = new Date().toISOString();
     const finalStatus = newStatus || status;
     if (isEditing && existingQuotation) {
-      const updated: Quotation = { ...existingQuotation, clientId, items, netTotal, status: finalStatus, notes, terms, updatedAt: now };
+      const updated: Quotation = { ...existingQuotation, clientId, items, netTotal: grandTotal, status: finalStatus, notes, terms, updatedAt: now };
       updateQuotation(updated);
       toast({ title: 'Quotation updated', description: `${existingQuotation.number} has been updated.` });
     } else {
       const newQuotation: Quotation = {
-        id: crypto.randomUUID(), number: generateQuotationNumber(), clientId, items, netTotal,
+        id: crypto.randomUUID(), number: generateQuotationNumber(), clientId, items, netTotal: grandTotal,
         status: finalStatus, notes, terms, createdAt: now, updatedAt: now,
       };
       addQuotation(newQuotation);
@@ -308,7 +308,13 @@ export default function QuotationForm() {
                 {items.map((item, index) => (
                   <tr key={item.id} className="border-b last:border-0">
                     <td className="py-2 text-muted-foreground">{index + 1}</td>
-                    <td className="py-2"><Input value={item.name} onChange={(e) => updateItem(index, 'name', e.target.value)} placeholder="Item name" className="h-8" /></td>
+                    <td className="py-2 min-w-[180px]">
+                      <ItemPicker
+                        value={item.itemId}
+                        fallbackName={item.name}
+                        onSelect={(it) => selectItemForRow(index, it)}
+                      />
+                    </td>
                     <td className="py-2"><Input value={item.description} onChange={(e) => updateItem(index, 'description', e.target.value)} placeholder="Description" className="h-8" /></td>
                     <td className="py-2"><Input type="number" min="1" value={item.quantity} onChange={(e) => updateItem(index, 'quantity', e.target.value)} className="h-8 text-right" /></td>
                     <td className="py-2"><Input type="number" min="0" step="0.01" value={item.rate} onChange={(e) => updateItem(index, 'rate', e.target.value)} className="h-8 text-right" /></td>
@@ -342,10 +348,18 @@ export default function QuotationForm() {
           </div>
 
           <div className="mt-3 flex justify-end">
-            <div className="w-full sm:w-48 rounded-lg bg-primary/10 p-2.5">
-              <div className="flex items-center justify-between text-sm font-bold">
-                <span>Net Total</span>
+            <div className="w-full sm:w-64 rounded-lg bg-primary/10 p-2.5 space-y-1">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">Subtotal</span>
                 <span>{currencySymbol}{netTotal.toLocaleString('en-IN')}</span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">VAT</span>
+                <span>{currencySymbol}{vatTotal.toLocaleString('en-IN')}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm font-bold pt-1 border-t">
+                <span>Grand Total</span>
+                <span>{currencySymbol}{grandTotal.toLocaleString('en-IN')}</span>
               </div>
             </div>
           </div>
