@@ -1,0 +1,25 @@
+{
+  "appId": "com.bookit.app",
+  "productName": "BookIt",
+  "directories": {
+    "buildResources": "public",
+    "output": "dist-electron"
+  },
+  "files": [
+    "dist/**/*",
+    "main.js",
+    "preload.js"
+  ],
+  "win": {
+    "target": [
+      {
+        "target": "portable",
+        "arch": ["x64"]
+      }
+    ],
+    "icon": "public/favicon.ico"
+  },
+  "portable": {
+    "artifactName": "${productName}-${version}.exe"
+  }
+}
