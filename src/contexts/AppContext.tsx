@@ -1,5 +1,6 @@
 import React, { createContext, useContext, ReactNode } from 'react';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
+import { useRemoteCollection } from '@/hooks/useRemoteCollection';
 import type { Client, Quotation, Invoice, PurchaseInvoice, BusinessSettings, Payment, Account, JournalEntry, JournalLine, Company, Voucher, VoucherType, AuditEntry, Item } from '@/types';
 import { DEFAULT_ACCOUNTS } from '@/types';
 
@@ -118,15 +119,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const companyKey = (key: string) => `app_${key}_${selectedCompanyId}`;
 
-  const [clients, setClients] = useLocalStorage<Client[]>(companyKey('clients'), []);
-  const [quotations, setQuotations] = useLocalStorage<Quotation[]>(companyKey('quotations'), []);
-  const [invoices, setInvoices] = useLocalStorage<Invoice[]>(companyKey('invoices'), []);
-  const [purchaseInvoices, setPurchaseInvoices] = useLocalStorage<PurchaseInvoice[]>(companyKey('purchase_invoices'), []);
-  const [payments, setPayments] = useLocalStorage<Payment[]>(companyKey('payments'), []);
-  const [accounts, setAccounts] = useLocalStorage<Account[]>(companyKey('accounts'), DEFAULT_ACCOUNTS);
-  const [journalEntries, setJournalEntries] = useLocalStorage<JournalEntry[]>(companyKey('journal_entries'), []);
-  const [vouchers, setVouchers] = useLocalStorage<Voucher[]>(companyKey('vouchers'), []);
-  const [items, setItems] = useLocalStorage<Item[]>(companyKey('items'), []);
+  // Shared collections sync with the LAN server when one is configured;
+  // otherwise they fall back to localStorage.
+  const [clients, setClients] = useRemoteCollection<Client>('clients', companyKey('clients'), []);
+  const [quotations, setQuotations] = useRemoteCollection<Quotation>('quotations', companyKey('quotations'), []);
+  const [invoices, setInvoices] = useRemoteCollection<Invoice>('invoices', companyKey('invoices'), []);
+  const [purchaseInvoices, setPurchaseInvoices] = useRemoteCollection<PurchaseInvoice>('purchaseInvoices', companyKey('purchase_invoices'), []);
+  const [payments, setPayments] = useRemoteCollection<Payment>('payments', companyKey('payments'), []);
+  const [accounts, setAccounts] = useRemoteCollection<Account>('accounts', companyKey('accounts'), DEFAULT_ACCOUNTS);
+  const [journalEntries, setJournalEntries] = useRemoteCollection<JournalEntry>('journalEntries', companyKey('journal_entries'), []);
+  const [vouchers, setVouchers] = useRemoteCollection<Voucher>('vouchers', companyKey('vouchers'), []);
+  const [items, setItems] = useRemoteCollection<Item>('items', companyKey('items'), []);
   const [settings, setSettings] = useLocalStorage<BusinessSettings>(companyKey('settings'), defaultSettings);
   const [auditLog, setAuditLog] = useLocalStorage<AuditEntry[]>(companyKey('audit_log'), []);
 
@@ -508,7 +511,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         await window.electronAPI!.query(
           `INSERT OR REPLACE INTO quotations (id, number, client_id, net_total, vat_amount, total, status, converted_invoice_id, notes, terms, created_at, updated_at)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [quotation.id, quotation.number, quotation.clientId, quotation.netTotal, quotation.vatAmount || 0, quotation.total || quotation.netTotal, quotation.status, quotation.convertedInvoiceId, quotation.notes, quotation.terms, quotation.createdAt, quotation.updatedAt]
+          [quotation.id, quotation.number, quotation.clientId, quotation.netTotal, 0, quotation.netTotal, quotation.status, quotation.convertedInvoiceId, quotation.notes, quotation.terms, quotation.createdAt, quotation.updatedAt]
         );
       }
 
@@ -517,7 +520,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         await window.electronAPI!.query(
           `INSERT OR REPLACE INTO invoices (id, number, client_id, quotation_id, net_total, vat_amount, total, status, due_date, notes, terms, created_at, updated_at)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [invoice.id, invoice.number, invoice.clientId, invoice.quotationId, invoice.netTotal, invoice.vatAmount || 0, invoice.total || invoice.netTotal, invoice.status, invoice.dueDate, invoice.notes, invoice.terms, invoice.createdAt, invoice.updatedAt]
+          [invoice.id, invoice.number, invoice.clientId, invoice.quotationId, invoice.netTotal, 0, invoice.netTotal, invoice.status, invoice.dueDate, invoice.notes, invoice.terms, invoice.createdAt, invoice.updatedAt]
         );
       }
 
@@ -526,7 +529,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         await window.electronAPI!.query(
           `INSERT OR REPLACE INTO purchase_invoices (id, number, vendor_id, net_total, vat_amount, total, status, due_date, notes, terms, created_at, updated_at)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [pi.id, pi.number, pi.vendorId, pi.netTotal, pi.vatAmount || 0, pi.total || pi.netTotal, pi.status, pi.dueDate, pi.notes, pi.terms, pi.createdAt, pi.updatedAt]
+          [pi.id, pi.number, pi.vendorId, pi.netTotal, 0, pi.netTotal, pi.status, pi.dueDate, pi.notes, pi.terms, pi.createdAt, pi.updatedAt]
         );
       }
 
@@ -659,7 +662,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
 
       // Sync business settings from database
-      const dbSettings = await window.electronAPI!.getBusinessSettings();
+      const dbSettings = (await window.electronAPI!.getBusinessSettings()) as Record<string, any> | null;
       if (dbSettings) {
         setSettings({
           name: dbSettings.name || '',
@@ -669,7 +672,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
           logo: dbSettings.logo,
           currency: dbSettings.currency || 'INR',
           taxNumber: dbSettings.tax_number,
-          vatRate: settings.vatRate || 18, // Keep local VAT rate
+          defaultVatPercentage: settings.defaultVatPercentage ?? 18,
+          vatEnabled: settings.vatEnabled,
+          bankName: settings.bankName,
+          bankAccountNumber: settings.bankAccountNumber,
           theme: settings.theme,
         });
       }
