@@ -202,6 +202,9 @@ export interface BusinessSettings {
   theme?: 'light' | 'dark' | 'system';
   vatEnabled?: boolean;
   defaultVatPercentage?: number;
+  bankName?: string;
+  bankAccountNumber?: string;
+  signature?: string; // Base64 encoded signature image
 }
 
 // Currency symbols

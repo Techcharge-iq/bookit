@@ -106,6 +106,8 @@ const defaultSettings: BusinessSettings = {
   theme: 'system',
   vatEnabled: true,
   defaultVatPercentage: 5,
+  bankName: '',
+  bankAccountNumber: '',
 };
 
 const AppContext = createContext<AppContextType | undefined>(undefined);

@@ -164,6 +164,31 @@ export default function Settings() {
     toast({ title: 'Logo removed', description: 'Your logo has been removed.' });
   };
 
+  const handleSignatureUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 500 * 1024) {
+        toast({
+          title: 'File too large',
+          description: 'Please select an image smaller than 500KB.',
+          variant: 'destructive',
+        });
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setSettings((prev) => ({ ...prev, signature: reader.result as string }));
+        toast({ title: 'Signature uploaded', description: 'Your signature has been updated.' });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeSignature = () => {
+    setSettings((prev) => ({ ...prev, signature: undefined }));
+    toast({ title: 'Signature removed', description: 'Your signature has been removed.' });
+  };
+
   return (
     <div className="max-w-2xl mx-auto space-y-4">
       <div className="space-y-0.5">
@@ -363,6 +388,56 @@ export default function Settings() {
                 Address
               </Label>
               <Textarea id="address" value={settings.address} onChange={(e) => handleChange('address', e.target.value)} placeholder="Business address" rows={2} className="resize-none text-sm" />
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="bankName" className="text-xs">Bank Name</Label>
+                <Input id="bankName" value={settings.bankName || ''} onChange={(e) => handleChange('bankName', e.target.value)} placeholder="Bank name" className="h-9" />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="bankAccountNumber" className="text-xs">Bank Account Number</Label>
+                <Input id="bankAccountNumber" value={settings.bankAccountNumber || ''} onChange={(e) => handleChange('bankAccountNumber', e.target.value)} placeholder="Account number" className="h-9" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Signature Section */}
+        <Card>
+          <CardHeader className="py-3 px-4">
+            <CardTitle className="text-sm">Digital Signature</CardTitle>
+            <CardDescription className="text-xs">Signature to appear on quotations and invoices</CardDescription>
+          </CardHeader>
+          <CardContent className="px-4 pb-4">
+            <div className="flex items-center gap-4">
+              <div className="relative">
+                <div className="flex h-24 w-32 items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/25 bg-muted/50">
+                  {settings.signature ? (
+                    <img src={settings.signature} alt="Signature" className="h-full w-full object-contain rounded-lg p-1" />
+                  ) : (
+                    <p className="text-xs text-muted-foreground">No signature</p>
+                  )}
+                </div>
+              </div>
+              <div className="flex-1 space-y-2">
+                <div className="flex flex-wrap gap-2">
+                  <Label
+                    htmlFor="signature-upload"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground rounded-md cursor-pointer hover:bg-primary/90 transition-colors text-xs font-medium"
+                  >
+                    <Upload className="h-3.5 w-3.5" />
+                    Upload
+                  </Label>
+                  <Input id="signature-upload" type="file" accept="image/*" onChange={handleSignatureUpload} className="hidden" />
+                  {settings.signature && (
+                    <Button type="button" variant="outline" size="sm" onClick={removeSignature} className="h-7 text-xs gap-1.5">
+                      <Trash2 className="h-3.5 w-3.5" />
+                      Remove
+                    </Button>
+                  )}
+                </div>
+                <p className="text-[10px] text-muted-foreground">PNG, JPG or SVG. Max 500KB.</p>
+              </div>
             </div>
           </CardContent>
         </Card>
