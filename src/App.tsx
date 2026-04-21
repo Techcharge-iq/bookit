@@ -28,6 +28,7 @@ import LoanReceivedVoucher from "./pages/LoanReceivedVoucher";
 import JournalVoucher from "./pages/JournalVoucher";
 import ItemsList from "./pages/ItemsList";
 import ItemReport from "./pages/reports/ItemReport";
+import VatReturn from "./pages/reports/VatReturn";
 import ChartOfAccounts from "./pages/ChartOfAccounts";
 import AccountStatement from "./pages/AccountStatement";
 import Settings from "./pages/Settings";
@@ -98,6 +99,7 @@ const App = () => (
                   <Route path="/reports/trial-balance" element={<ErrorBoundary inline><TrialBalance /></ErrorBoundary>} />
                   <Route path="/reports/aging" element={<ErrorBoundary inline><AgingReport /></ErrorBoundary>} />
                   <Route path="/reports/items" element={<ErrorBoundary inline><ItemReport /></ErrorBoundary>} />
+                  <Route path="/reports/vat" element={<ErrorBoundary inline><VatReturn /></ErrorBoundary>} />
                   <Route path="/settings" element={<ErrorBoundary inline><Settings /></ErrorBoundary>} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
