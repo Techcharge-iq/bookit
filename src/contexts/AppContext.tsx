@@ -45,6 +45,7 @@ interface AppContextType {
   addPayment: (payment: Payment) => void;
   getPaymentsByInvoice: (invoiceId: string) => Payment[];
   getPaymentsByClient: (clientId: string) => Payment[];
+  calculateInvoicePaymentStatus: (invoiceId: string) => 'unpaid' | 'partial' | 'paid';
 
   // Accounts & Journal
   accounts: Account[];
@@ -488,6 +489,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return candidate;
   };
 
+  // Helper function to calculate invoice payment status based on payment records
+  const calculateInvoicePaymentStatus = (invoiceId: string): 'unpaid' | 'partial' | 'paid' => {
+    const invoicePayments = getPaymentsByInvoice(invoiceId);
+    const invoice = invoices.find((i) => i.id === invoiceId);
+    
+    if (!invoice) return 'unpaid';
+    
+    const totalPaid = invoicePayments.reduce((sum, payment) => sum + payment.amount, 0);
+    const invoiceTotal = invoice.netTotal;
+    
+    if (totalPaid === 0) {
+      return 'unpaid';
+    } else if (totalPaid < invoiceTotal) {
+      return 'partial';
+    } else {
+      return 'paid';
+    }
+  };
+
   // Sync functionality
   const isElectron = typeof window !== 'undefined' && !!window.electronAPI;
 
@@ -706,7 +726,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         quotations, setQuotations, addQuotation, updateQuotation, deleteQuotation, getQuotation,
         invoices, setInvoices, addInvoice, updateInvoice, deleteInvoice, getInvoice,
         purchaseInvoices, setPurchaseInvoices, addPurchaseInvoice, updatePurchaseInvoice, deletePurchaseInvoice, getPurchaseInvoice, generatePurchaseInvoiceNumber,
-        payments, addPayment, getPaymentsByInvoice, getPaymentsByClient,
+        payments, addPayment, getPaymentsByInvoice, getPaymentsByClient, calculateInvoicePaymentStatus,
         accounts, setAccounts, addAccount, deleteAccount,
         journalEntries, createJournalEntry, getAccountBalance,
         vouchers, addVoucher, generateVoucherNumber,

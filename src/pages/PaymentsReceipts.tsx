@@ -19,7 +19,7 @@ export default function PaymentsReceipts() {
   const {
     clients, invoices, purchaseInvoices, payments,
     addPayment, updateInvoice, updatePurchaseInvoice,
-    getClient, settings, createJournalEntry,
+    getClient, settings, createJournalEntry, calculateInvoicePaymentStatus,
   } = useApp();
 
   const currencySymbol = currencySymbols[settings.currency];
@@ -102,8 +102,10 @@ export default function PaymentsReceipts() {
 
       const inv = invoices.find((i) => i.id === selectedInvoiceId);
       if (inv) {
-        const newTotal = (selectedInvoice?.paid || 0) + amount;
-        const newStatus = newTotal >= inv.netTotal ? 'paid' : 'partial';
+        // Calculate new status based on total payments
+        const paymentStatus = calculateInvoicePaymentStatus(selectedInvoiceId);
+        // Keep the current status if it's "sent", otherwise update with payment status
+        const newStatus = inv.status === 'sent' ? paymentStatus : paymentStatus;
         updateInvoice({ ...inv, status: newStatus as any, updatedAt: now });
       }
     } else {
@@ -121,8 +123,9 @@ export default function PaymentsReceipts() {
 
       const pi = purchaseInvoices.find((p) => p.id === selectedInvoiceId);
       if (pi) {
-        const newTotal = (selectedInvoice?.paid || 0) + amount;
-        const newStatus = newTotal >= pi.netTotal ? 'paid' : 'partial';
+        // Calculate new status based on total payments
+        const paymentStatus = calculateInvoicePaymentStatus(selectedInvoiceId);
+        const newStatus = paymentStatus;
         updatePurchaseInvoice({ ...pi, status: newStatus as any, updatedAt: now });
       }
     }

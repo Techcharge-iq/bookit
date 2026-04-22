@@ -18,7 +18,7 @@ import { currencySymbols, type InvoiceStatus } from '@/types';
 import { Plus, Search, Receipt, Trash2, Edit, ChevronDown, Filter } from 'lucide-react';
 
 export default function InvoicesList() {
-  const { invoices, deleteInvoice, getClient, settings } = useApp();
+  const { invoices, deleteInvoice, getClient, settings, calculateInvoicePaymentStatus } = useApp();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<InvoiceStatus | 'all'>('all');
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -27,7 +27,9 @@ export default function InvoicesList() {
   const filteredInvoices = invoices.filter((i) => {
     const client = getClient(i.clientId);
     const matchesSearch = i.number.toLowerCase().includes(search.toLowerCase()) || client?.name.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || i.status === statusFilter;
+    // Calculate status based on payments for filter matching
+    const displayStatus = i.status === 'draft' || i.status === 'cancelled' ? i.status : calculateInvoicePaymentStatus(i.id);
+    const matchesStatus = statusFilter === 'all' || displayStatus === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
@@ -116,7 +118,9 @@ export default function InvoicesList() {
             .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
             .map((invoice) => {
               const client = getClient(invoice.clientId);
-              const isOverdue = invoice.status !== 'paid' && invoice.status !== 'cancelled' && new Date(invoice.dueDate) < new Date();
+              // Calculate status based on payments
+              const displayStatus = invoice.status === 'draft' || invoice.status === 'cancelled' ? invoice.status : calculateInvoicePaymentStatus(invoice.id);
+              const isOverdue = displayStatus !== 'paid' && invoice.status !== 'cancelled' && new Date(invoice.dueDate) < new Date();
               return (
                 <Card key={invoice.id} className="hover:shadow-sm transition-shadow">
                   <CardContent className="p-3">
@@ -127,8 +131,8 @@ export default function InvoicesList() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-0.5">
                           <p className="text-sm font-semibold truncate">{invoice.number}</p>
-                          {getStatusDot(isOverdue && invoice.status !== 'overdue' ? 'overdue' : invoice.status)}
-                          <span className="text-[10px] text-muted-foreground capitalize">{isOverdue && invoice.status !== 'overdue' ? 'overdue' : invoice.status}</span>
+                          {getStatusDot(isOverdue ? 'overdue' as InvoiceStatus : displayStatus)}
+                          <span className="text-[10px] text-muted-foreground capitalize">{isOverdue ? 'overdue' : displayStatus}</span>
                         </div>
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
                           <span className="truncate">{client?.name || 'No client'}</span>
