@@ -54,6 +54,7 @@ export interface Quotation {
   id: string;
   number: string;
   clientId: string;
+  salesmanId?: string;
   items: LineItem[];
   netTotal: number;
   status: QuotationStatus;
@@ -71,6 +72,7 @@ export interface Invoice {
   id: string;
   number: string;
   clientId: string;
+  salesmanId?: string;
   quotationId?: string;
   items: LineItem[];
   netTotal: number;
@@ -188,6 +190,14 @@ export const DEFAULT_ACCOUNTS: Account[] = [
 export interface Company {
   id: string;
   name: string;
+}
+
+// Salesman
+export interface Salesman {
+  id: string;
+  name: string;
+  phone?: string;
+  createdAt: string;
 }
 
 // Business settings

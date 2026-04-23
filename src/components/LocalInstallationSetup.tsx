@@ -51,60 +51,7 @@ export default function LocalInstallationSetup() {
   };
 
   if (isConfigured && lanMode === 'standalone') {
-    return (
-      <Card className="rounded-3xl border-2 border-success/30 bg-success/5 shadow-sm">
-        <CardHeader className="flex flex-row items-start justify-between gap-4 pb-3">
-          <div className="space-y-1.5">
-            <div className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-success" />
-              <CardTitle className="text-base">Local Mode Active</CardTitle>
-            </div>
-            <CardDescription>Your data is stored locally on this device</CardDescription>
-          </div>
-          <span className="rounded-full bg-success/20 px-3 py-1 text-xs font-semibold text-success">Active</span>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-3">
-            <div className="flex gap-3 rounded-2xl border border-success/30 bg-white/50 p-3 text-sm">
-              <Database className="h-5 w-5 flex-shrink-0 text-success" />
-              <div>
-                <p className="font-medium text-foreground">Standalone Operation</p>
-                <p className="text-xs text-muted-foreground">All data is stored locally and not synced to any server</p>
-              </div>
-            </div>
-            <div className="flex gap-3 rounded-2xl border border-success/30 bg-white/50 p-3 text-sm">
-              <Clock className="h-5 w-5 flex-shrink-0 text-success" />
-              <div>
-                <p className="font-medium text-foreground">Always Available</p>
-                <p className="text-xs text-muted-foreground">Works offline without internet connection</p>
-              </div>
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-2 pt-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-2"
-              onClick={handleConfigureLocal}
-            >
-              <Settings className="h-4 w-4" />
-              Network Settings
-            </Button>
-            {!isElectron && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="gap-2"
-                onClick={handleDownloadApp}
-              >
-                <Download className="h-4 w-4" />
-                Get Desktop App
-              </Button>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-    );
+    return null;
   }
 
   if (isConfigured && lanMode === 'client' && lanUrl) {
@@ -201,17 +148,6 @@ export default function LocalInstallationSetup() {
             Configure Now
             <ArrowRight className="h-4 w-4" />
           </Button>
-          {!isElectron && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-2"
-              onClick={handleDownloadApp}
-            >
-              <Download className="h-4 w-4" />
-              Download Desktop App (Recommended)
-            </Button>
-          )}
         </div>
 
         <p className="text-xs text-muted-foreground bg-white/50 rounded-lg p-2">

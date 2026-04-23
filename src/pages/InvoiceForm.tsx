@@ -35,6 +35,7 @@ export default function InvoiceForm() {
     clients, addClient, getClient, settings,
     generateInvoiceNumber,
     createJournalEntry, adjustItemStock, calculateInvoicePaymentStatus,
+    salesmen, addSalesman,
   } = useApp();
 
   const isEditing = id && id !== 'new';
@@ -47,6 +48,7 @@ export default function InvoiceForm() {
   defaultDueDate.setDate(defaultDueDate.getDate() + 30);
 
   const [clientId, setClientId] = useState(existingInvoice?.clientId || sourceQuotation?.clientId || '');
+  const [salesmanId, setSalesmanId] = useState<string>(existingInvoice?.salesmanId || sourceQuotation?.salesmanId || '');
   const [dueDate, setDueDate] = useState(existingInvoice?.dueDate || defaultDueDate.toISOString().split('T')[0]);
   const [notes, setNotes] = useState(existingInvoice?.notes || sourceQuotation?.notes || '');
   const [terms, setTerms] = useState(existingInvoice?.terms || sourceQuotation?.terms || 'Payment terms: Net 30 days');
@@ -56,6 +58,8 @@ export default function InvoiceForm() {
 
   const [isAddClientOpen, setIsAddClientOpen] = useState(false);
   const [newClient, setNewClient] = useState({ name: '', email: '', phone: '', address: '' });
+  const [isAddSalesmanOpen, setIsAddSalesmanOpen] = useState(false);
+  const [newSalesman, setNewSalesman] = useState({ name: '', phone: '' });
   const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
   const [isAddItemSheetOpen, setIsAddItemSheetOpen] = useState(false);
   const [tempItem, setTempItem] = useState<LineItem>({ id: '', name: '', description: '', quantity: 1, rate: 0, total: 0 });
@@ -147,6 +151,7 @@ export default function InvoiceForm() {
 
   const handleSave = () => {
     if (!clientId) { toast({ title: 'Error', description: 'Please select a client', variant: 'destructive' }); return; }
+    if (!salesmanId) { toast({ title: 'Error', description: 'Please select a salesman', variant: 'destructive' }); return; }
     if (items.some((item) => !item.name.trim())) { toast({ title: 'Error', description: 'All items must have a name', variant: 'destructive' }); return; }
 
     const now = new Date().toISOString();
@@ -158,8 +163,8 @@ export default function InvoiceForm() {
     } else {
       const newInvoice: Invoice = {
         id: crypto.randomUUID(), number: generateInvoiceNumber(), clientId,
-        quotationId: sourceQuotation?.id, items, netTotal: grandTotal, status: 'draft', dueDate, notes, terms,
-        createdAt: now, updatedAt: now,
+          quotationId: sourceQuotation?.id, items, netTotal: grandTotal, status: 'draft', dueDate, notes, terms, salesmanId,
+          createdAt: now, updatedAt: now,
       };
       addInvoice(newInvoice);
 
@@ -262,10 +267,7 @@ export default function InvoiceForm() {
                 <span className="hidden sm:inline ml-1.5">Payment</span>
               </Button>
             )}
-            <Button variant="outline" size="sm" onClick={handleDownloadPDF} className="h-8 px-2">
-              <Download className="h-4 w-4" />
-              <span className="hidden sm:inline ml-1.5">PDF</span>
-            </Button>
+                {/* Download removed per UI update */}
             <Button variant="outline" size="sm" onClick={handleShare} className="h-8 px-2">
               <Share2 className="h-4 w-4" />
               <span className="hidden sm:inline ml-1.5">Share</span>
@@ -331,7 +333,7 @@ export default function InvoiceForm() {
                           fallbackName={item.name}
                           onSelect={(it) => selectItemForRow(index, it)}
                         />
-                        <Input value={item.description} onChange={(e) => updateItem(index, 'description', e.target.value)} placeholder="Description" className="h-8" />
+                        <Textarea value={item.description} onChange={(e) => updateItem(index, 'description', e.target.value)} placeholder="Description (supports multiline/bullets)" rows={2} className="text-sm" />
                       </div>
                     </td>
                     <td className="py-2"><Input type="number" min="1" value={item.quantity} onChange={(e) => updateItem(index, 'quantity', e.target.value)} className="h-8 text-right" /></td>
@@ -431,6 +433,30 @@ export default function InvoiceForm() {
           <DialogFooter>
             <Button variant="outline" size="sm" onClick={() => setIsAddClientOpen(false)}>Cancel</Button>
             <Button size="sm" onClick={handleAddClient}>Add Client</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={isAddSalesmanOpen} onOpenChange={setIsAddSalesmanOpen}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Add Salesman</DialogTitle>
+            <DialogDescription>Quick add a new salesman</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-3 py-3">
+            <div className="space-y-1.5"><Label className="text-xs">Name *</Label><Input value={newSalesman.name} onChange={(e) => setNewSalesman({ ...newSalesman, name: e.target.value })} className="h-9" /></div>
+            <div className="space-y-1.5"><Label className="text-xs">Phone</Label><Input value={newSalesman.phone} onChange={(e) => setNewSalesman({ ...newSalesman, phone: e.target.value })} className="h-9" /></div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setIsAddSalesmanOpen(false)}>Cancel</Button>
+            <Button size="sm" onClick={() => {
+              if (!newSalesman.name.trim()) return toast({ title: 'Error', description: 'Salesman name required', variant: 'destructive' });
+              const s = { id: crypto.randomUUID(), name: newSalesman.name, phone: newSalesman.phone, createdAt: new Date().toISOString() };
+              addSalesman(s);
+              setSalesmanId(s.id);
+              setIsAddSalesmanOpen(false);
+              setNewSalesman({ name: '', phone: '' });
+              toast({ title: 'Salesman added', description: `${s.name} created.` });
+            }}>Add Salesman</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

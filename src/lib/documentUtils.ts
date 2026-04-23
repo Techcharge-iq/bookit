@@ -89,41 +89,40 @@ export async function generatePDF({ type, document, client, settings }: Document
           max-width: 800px;
           margin: 0 auto;
         }
-        .header { 
-          display: flex; 
-          justify-content: space-between; 
+        .header {
+          display: flex;
+          justify-content: space-between;
           align-items: flex-start;
-          margin-bottom: 40px;
-          padding-bottom: 20px;
-          border-bottom: 2px solid #e5e7eb;
+          margin-bottom: 18px;
+          padding-bottom: 8px;
+          gap: 12px;
         }
         .logo-section { display: flex; align-items: center; gap: 12px; }
-        .logo { width: 60px; height: 60px; object-fit: contain; }
-        .business-name { font-size: 24px; font-weight: bold; color: #3b82f6; }
+        .logo { width: 56px; height: 56px; object-fit: contain; }
+        .business-name { font-size: 18px; font-weight: 700; color: #111827; }
         .doc-info { text-align: right; }
-        .doc-type { 
-          font-size: 28px; 
-          font-weight: bold; 
+        .doc-type {
+          font-size: 16px;
+          font-weight: 700;
           text-transform: uppercase;
           color: ${isInvoice ? '#10b981' : '#3b82f6'};
         }
-        .doc-number { font-size: 14px; color: #6b7280; margin-top: 4px; }
-        .doc-date { font-size: 14px; color: #6b7280; }
+        .doc-number { font-size: 13px; color: #374151; margin-top: 2px; }
+        .doc-date { font-size: 12px; color: #6b7280; }
         
-        .parties { 
-          display: grid; 
-          grid-template-columns: 1fr 1fr; 
-          gap: 40px;
-          margin-bottom: 40px;
+        .parties {
+          display: flex;
+          justify-content: space-between;
+          gap: 20px;
+          margin-bottom: 18px;
         }
-        .party-section h3 { 
-          font-size: 12px; 
-          text-transform: uppercase; 
+        .party-section h3 {
+          font-size: 11px;
+          text-transform: uppercase;
           color: #6b7280;
-          margin-bottom: 8px;
-          letter-spacing: 0.5px;
+          margin-bottom: 4px;
         }
-        .party-name { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+        .party-name { font-size: 14px; font-weight: 700; margin-bottom: 2px; }
         .party-details { font-size: 14px; color: #4b5563; line-height: 1.6; }
         
         table { 
@@ -141,25 +140,25 @@ export async function generatePDF({ type, document, client, settings }: Document
           letter-spacing: 0.5px;
         }
         th:last-child { text-align: right; }
-        td { 
-          padding: 16px; 
+        td {
+          padding: 10px 8px;
           border-bottom: 1px solid #e5e7eb;
-          font-size: 14px;
+          font-size: 12px;
         }
         td:last-child { text-align: right; }
         .item-name { font-weight: 500; }
         .item-desc { font-size: 13px; color: #6b7280; margin-top: 2px; }
         
-        .totals { 
-          display: flex; 
+        .totals {
+          display: flex;
           justify-content: flex-end;
-          margin-bottom: 40px;
+          margin-bottom: 18px;
         }
-        .totals-box { 
-          width: 280px;
+        .totals-box {
+          width: 220px;
           background: #f8fafc;
-          border-radius: 8px;
-          padding: 20px;
+          border-radius: 6px;
+          padding: 12px;
         }
         .total-row { 
           display: flex; 
@@ -175,11 +174,11 @@ export async function generatePDF({ type, document, client, settings }: Document
           color: #1a1a2e;
         }
         
-        .notes-section { 
-          background: #f8fafc; 
-          padding: 20px;
-          border-radius: 8px;
-          margin-bottom: 20px;
+        .notes-section {
+          background: #f8fafc;
+          padding: 12px;
+          border-radius: 6px;
+          margin-bottom: 14px;
         }
         .notes-section h4 { 
           font-size: 12px; 
@@ -225,12 +224,14 @@ export async function generatePDF({ type, document, client, settings }: Document
       
       <div class="parties">
         <div class="party-section">
-          <h3>From</h3>
-          <div class="party-name">${settings.name || 'Your Business'}</div>
-          <div class="party-details">
-            ${settings.address ? `${settings.address}<br>` : ''}
-            ${settings.taxNumber ? `GST: ${settings.taxNumber}` : ''}
+          <div style="display:flex;flex-direction:column;align-items:flex-start;">
+            ${settings.logo ? `<img src="${settings.logo}" class="logo" alt="Logo">` : ''}
           </div>
+          <div>
+            <div class="party-name">${settings.name || 'Your Business'}</div>
+            <div class="party-details">${settings.address ? `${settings.address}<br>` : ''}${settings.taxNumber ? `GST: ${settings.taxNumber}` : ''}</div>
+          </div>
+        
         </div>
         <div class="party-section">
           <h3>Bill To</h3>
@@ -241,6 +242,12 @@ export async function generatePDF({ type, document, client, settings }: Document
             ${client?.address || ''}
           </div>
         </div>
+      </div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <div style="font-size:12px;color:#6b7280;">Invoice/Quote #: <strong style="color:#111827;">${document.number}</strong></div>
+        <div style="font-size:12px;color:#6b7280;">Billing Date: ${new Date(document.createdAt).toLocaleDateString('en-IN')}</div>
+        ${isInvoice && invoice ? `<div style="font-size:12px;color:#6b7280;">Due Date: ${new Date(invoice.dueDate).toLocaleDateString('en-IN')}</div>` : ''}
       </div>
       
       <table>

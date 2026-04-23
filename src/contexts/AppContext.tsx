@@ -2,6 +2,7 @@ import React, { createContext, useContext, ReactNode } from 'react';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useRemoteCollection } from '@/hooks/useRemoteCollection';
 import type { Client, Quotation, Invoice, PurchaseInvoice, BusinessSettings, Payment, Account, JournalEntry, JournalLine, Company, Voucher, VoucherType, AuditEntry, Item, InvoiceStatus } from '@/types';
+import type { Salesman } from '@/types';
 import { DEFAULT_ACCOUNTS } from '@/types';
 
 interface AppContextType {
@@ -60,6 +61,10 @@ interface AppContextType {
 
   // Items
   items: Item[];
+  // Salesmen
+  salesmen: Salesman[];
+  addSalesman: (s: Salesman) => void;
+  getSalesman: (id: string) => Salesman | undefined;
   addItem: (item: Item) => void;
   updateItem: (item: Item) => void;
   deleteItem: (id: string) => void;
@@ -131,6 +136,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [journalEntries, setJournalEntries] = useRemoteCollection<JournalEntry>('journalEntries', companyKey('journal_entries'), []);
   const [vouchers, setVouchers] = useRemoteCollection<Voucher>('vouchers', companyKey('vouchers'), []);
   const [items, setItems] = useRemoteCollection<Item>('items', companyKey('items'), []);
+  const [salesmen, setSalesmen] = useRemoteCollection<Salesman>('salesmen', companyKey('salesmen'), []);
   const [settings, setSettings] = useLocalStorage<BusinessSettings>(companyKey('settings'), defaultSettings);
   const [auditLog, setAuditLog] = useLocalStorage<AuditEntry[]>(companyKey('audit_log'), []);
 
@@ -396,6 +402,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const addItem = (item: Item) => {
     setItems((prev) => [...prev, item]);
   };
+  const addSalesman = (s: Salesman) => {
+    setSalesmen((prev) => [...prev, s]);
+  };
+  const getSalesman = (id: string) => salesmen.find((s) => s.id === id);
   const updateItem = (item: Item) => {
     setItems((prev) => prev.map((i) => (i.id === item.id ? item : i)));
   };
@@ -529,18 +539,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
       // Sync quotations
       for (const quotation of quotations) {
         await window.electronAPI!.query(
-          `INSERT OR REPLACE INTO quotations (id, number, client_id, net_total, vat_amount, total, status, converted_invoice_id, notes, terms, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [quotation.id, quotation.number, quotation.clientId, quotation.netTotal, 0, quotation.netTotal, quotation.status, quotation.convertedInvoiceId, quotation.notes, quotation.terms, quotation.createdAt, quotation.updatedAt]
+          `INSERT OR REPLACE INTO quotations (id, number, client_id, salesman_id, net_total, vat_amount, total, status, converted_invoice_id, notes, terms, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [quotation.id, quotation.number, quotation.clientId, quotation.salesmanId || null, quotation.netTotal, 0, quotation.netTotal, quotation.status, quotation.convertedInvoiceId, quotation.notes, quotation.terms, quotation.createdAt, quotation.updatedAt]
         );
       }
 
       // Sync invoices
       for (const invoice of invoices) {
         await window.electronAPI!.query(
-          `INSERT OR REPLACE INTO invoices (id, number, client_id, quotation_id, net_total, vat_amount, total, status, due_date, notes, terms, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [invoice.id, invoice.number, invoice.clientId, invoice.quotationId, invoice.netTotal, 0, invoice.netTotal, invoice.status, invoice.dueDate, invoice.notes, invoice.terms, invoice.createdAt, invoice.updatedAt]
+          `INSERT OR REPLACE INTO invoices (id, number, client_id, salesman_id, quotation_id, net_total, vat_amount, total, status, due_date, notes, terms, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [invoice.id, invoice.number, invoice.clientId, (invoice as any).salesmanId || null, invoice.quotationId, invoice.netTotal, 0, invoice.netTotal, invoice.status, invoice.dueDate, invoice.notes, invoice.terms, invoice.createdAt, invoice.updatedAt]
         );
       }
 
@@ -559,6 +569,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
           `INSERT OR REPLACE INTO payments (id, invoice_id, invoice_type, amount, date, method, reference, notes, created_at)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [payment.id, payment.invoiceId, payment.invoiceType, payment.amount, payment.date, payment.method, payment.reference, payment.notes, payment.createdAt]
+        );
+      }
+
+      // Sync salesmen
+      for (const s of salesmen) {
+        await window.electronAPI!.query(
+          `INSERT OR REPLACE INTO salesmen (id, name, phone, created_at) VALUES (?, ?, ?, ?)`,
+          [s.id, s.name, s.phone || null, s.createdAt]
         );
       }
 
@@ -732,6 +750,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         vouchers, addVoucher, generateVoucherNumber,
         addJournalVoucher,
         items, addItem, updateItem, deleteItem, getItem, adjustItemStock,
+        salesmen, addSalesman, getSalesman,
         settings, setSettings,
         syncToDatabase, syncFromDatabase, forceSync, isElectron,
         auditLog, addAuditEntry, getRecentAuditLog,

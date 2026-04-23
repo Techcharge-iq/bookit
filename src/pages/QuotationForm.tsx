@@ -31,6 +31,7 @@ export default function QuotationForm() {
   const {
     quotations, addQuotation, updateQuotation,
     clients, addClient, getClient, settings, generateQuotationNumber,
+    salesmen, addSalesman,
   } = useApp();
 
   const isEditing = id && id !== 'new';
@@ -38,6 +39,7 @@ export default function QuotationForm() {
   const currencySymbol = currencySymbols[settings.currency];
 
   const [clientId, setClientId] = useState(existingQuotation?.clientId || '');
+  const [salesmanId, setSalesmanId] = useState(existingQuotation?.salesmanId || '');
   const [status, setStatus] = useState<QuotationStatus>(existingQuotation?.status || 'draft');
   const [notes, setNotes] = useState(existingQuotation?.notes || '');
   const [terms, setTerms] = useState(existingQuotation?.terms || 'Payment terms: Net 30 days');
@@ -49,6 +51,8 @@ export default function QuotationForm() {
 
   const [isAddClientOpen, setIsAddClientOpen] = useState(false);
   const [newClient, setNewClient] = useState({ name: '', email: '', phone: '', address: '' });
+  const [isAddSalesmanOpen, setIsAddSalesmanOpen] = useState(false);
+  const [newSalesman, setNewSalesman] = useState({ name: '', phone: '' });
   const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
   const [isAddItemSheetOpen, setIsAddItemSheetOpen] = useState(false);
   const [tempItem, setTempItem] = useState<LineItem>({ id: '', name: '', description: '', quantity: 1, rate: 0, total: 0 });
@@ -153,6 +157,10 @@ export default function QuotationForm() {
       toast({ title: 'Error', description: 'Please select a client', variant: 'destructive' });
       return;
     }
+    if (!salesmanId) {
+      toast({ title: 'Error', description: 'Please select a salesman', variant: 'destructive' });
+      return;
+    }
     if (items.some((item) => !item.name.trim())) {
       toast({ title: 'Error', description: 'All items must have a name', variant: 'destructive' });
       return;
@@ -166,7 +174,7 @@ export default function QuotationForm() {
     } else {
       const newQuotation: Quotation = {
         id: crypto.randomUUID(), number: generateQuotationNumber(), clientId, items, netTotal: grandTotal,
-        status: finalStatus, notes, terms, createdAt: now, updatedAt: now,
+        status: finalStatus, notes, terms, salesmanId, createdAt: now, updatedAt: now,
       };
       addQuotation(newQuotation);
       toast({ title: 'Quotation created', description: `${newQuotation.number} has been created.` });
@@ -278,6 +286,20 @@ export default function QuotationForm() {
                 </Select>
               )}
             </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Salesman *</Label>
+              <div className="flex gap-1.5">
+                <Select value={salesmanId} onValueChange={setSalesmanId}>
+                  <SelectTrigger className="flex-1 h-9"><SelectValue placeholder="Select salesman" /></SelectTrigger>
+                  <SelectContent>
+                    {salesmen.map((s) => (<SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>))}
+                  </SelectContent>
+                </Select>
+                <Button type="button" variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={() => setIsAddSalesmanOpen(true)}>
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -315,7 +337,7 @@ export default function QuotationForm() {
                         onSelect={(it) => selectItemForRow(index, it)}
                       />
                     </td>
-                    <td className="py-2"><Input value={item.description} onChange={(e) => updateItem(index, 'description', e.target.value)} placeholder="Description" className="h-8" /></td>
+                    <td className="py-2"><Textarea value={item.description} onChange={(e) => updateItem(index, 'description', e.target.value)} placeholder="Description (supports multiline/bullets)" rows={2} className="text-sm" /></td>
                     <td className="py-2"><Input type="number" min="1" value={item.quantity} onChange={(e) => updateItem(index, 'quantity', e.target.value)} className="h-8 text-right" /></td>
                     <td className="py-2"><Input type="number" min="0" step="0.01" value={item.rate} onChange={(e) => updateItem(index, 'rate', e.target.value)} className="h-8 text-right" /></td>
                     <td className="py-2 text-right font-medium">{currencySymbol}{item.total.toLocaleString('en-IN')}</td>
@@ -464,6 +486,30 @@ export default function QuotationForm() {
           <DialogFooter>
             <Button variant="outline" size="sm" onClick={() => setIsAddClientOpen(false)}>Cancel</Button>
             <Button size="sm" onClick={handleAddClient}>Add Client</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={isAddSalesmanOpen} onOpenChange={setIsAddSalesmanOpen}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Add Salesman</DialogTitle>
+            <DialogDescription>Quick add a new salesman</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-3 py-3">
+            <div className="space-y-1.5"><Label className="text-xs">Name *</Label><Input value={newSalesman.name} onChange={(e) => setNewSalesman({ ...newSalesman, name: e.target.value })} className="h-9" /></div>
+            <div className="space-y-1.5"><Label className="text-xs">Phone</Label><Input value={newSalesman.phone} onChange={(e) => setNewSalesman({ ...newSalesman, phone: e.target.value })} className="h-9" /></div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setIsAddSalesmanOpen(false)}>Cancel</Button>
+            <Button size="sm" onClick={() => {
+              if (!newSalesman.name.trim()) return toast({ title: 'Error', description: 'Salesman name required', variant: 'destructive' });
+              const s = { id: crypto.randomUUID(), name: newSalesman.name, phone: newSalesman.phone, createdAt: new Date().toISOString() };
+              addSalesman(s);
+              setSalesmanId(s.id);
+              setIsAddSalesmanOpen(false);
+              setNewSalesman({ name: '', phone: '' });
+              toast({ title: 'Salesman added', description: `${s.name} created.` });
+            }}>Add Salesman</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
