@@ -77,8 +77,6 @@
   },
   "devDependencies": {
     "@electron-forge/cli": "^7.11.1",
-    "@electron-forge/maker-deb": "^7.11.1",
-    "@electron-forge/maker-rpm": "^7.11.1",
     "@electron-forge/maker-squirrel": "^7.11.1",
     "@electron-forge/maker-zip": "^7.11.1",
     "@electron-forge/plugin-auto-unpack-natives": "^7.11.1",
@@ -109,5 +107,16 @@
     "vite": "^5.4.19",
     "vitest": "^3.2.4",
     "wait-on": "^9.0.4"
-  }
+  },
+  "build": {
+    "asar": true,
+    "sourcemaps": false,
+    "prune": true
+  },
+  "files": [
+    "dist/**/*",
+    "main.js",
+    "preload.js",
+    "package.json"
+  ]
 }

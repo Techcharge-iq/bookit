@@ -1,9 +1,7 @@
-const { FusesPlugin } = require('@electron-forge/plugin-fuses');
-const { FuseV1Options, FuseVersion } = require('@electron/fuses');
-
 module.exports = {
   packagerConfig: {
     asar: true,
+    prune: true,
   },
 
   rebuildConfig: {},
@@ -27,14 +25,14 @@ module.exports = {
       config: {}
     },
 
-    new FusesPlugin({
-      version: FuseVersion.V1,
-      [FuseV1Options.RunAsNode]: false,
-      [FuseV1Options.EnableCookieEncryption]: true,
-      [FuseV1Options.EnableNodeOptionsEnvironmentVariable]: false,
-      [FuseV1Options.EnableNodeCliInspectArguments]: false,
-      [FuseV1Options.EnableEmbeddedAsarIntegrityValidation]: true,
-      [FuseV1Options.OnlyLoadAppFromAsar]: true
+    new (require('@electron-forge/plugin-fuses').FusesPlugin)({
+      version: require('@electron/fuses').FuseVersion.V1,
+      [require('@electron/fuses').FuseV1Options.RunAsNode]: false,
+      [require('@electron/fuses').FuseV1Options.EnableCookieEncryption]: true,
+      [require('@electron/fuses').FuseV1Options.EnableNodeOptionsEnvironmentVariable]: false,
+      [require('@electron/fuses').FuseV1Options.EnableNodeCliInspectArguments]: false,
+      [require('@electron/fuses').FuseV1Options.EnableEmbeddedAsarIntegrityValidation]: true,
+      [require('@electron/fuses').FuseV1Options.OnlyLoadAppFromAsar]: true
     })
   ]
 };
