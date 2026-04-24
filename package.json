@@ -8,15 +8,19 @@
   "main": "main.js",
   "homepage": "./",
   "scripts": {
-    "dev": "cross-env NODE_ENV=development vite",
-    "build": "cross-env NODE_ENV=production vite build",
-    "build:dev": "vite build --mode development",
-    "electron": "electron .",
-    "electron-dev": "concurrently \"npm run dev\" \"wait-on http://localhost:5173 && electron .\"",
-    "start": "electron .",
-    "package": "electron-forge package --platform=win32",
-    "make": "electron-forge make --platform=win32",
-    "start:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:5173 && electron .\""
+  
+  "dev": "cross-env NODE_ENV=development vite",
+  "build": "cross-env NODE_ENV=production vite build",
+
+  "electron": "electron .",
+  "electron-dev": "concurrently \"npm run dev\" \"wait-on http://localhost:5173 && electron .\"",
+
+  "start": "electron .",
+
+  "rebuild-electron": "electron-rebuild",
+
+  "dist": "npm run build && npx electron-builder --win nsis --x64 --publish never",
+  "build-win": "npm run build && npm run rebuild-electron && npx electron-builder --win nsis --x64 --publish never"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.11",

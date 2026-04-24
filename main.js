@@ -1,101 +1,169 @@
 const path = require('path');
 const fs = require('fs');
-const { app, BrowserWindow, dialog, shell } = require('electron');
+const { app, BrowserWindow, dialog, shell, ipcMain } = require('electron');
 const { autoUpdater } = require('electron-updater');
+const sqlite3 = require('sqlite3').verbose();
 const DiagnosticLogger = require('./diagnostic-logger');
 
 const isDev = process.env.NODE_ENV === 'development';
 const diagnostics = new DiagnosticLogger();
 let mainWindow = null;
+let db = null;
 
-function getIndexPath() {
-  const localBuild = path.join(__dirname, 'dist', 'index.html');
-  if (fs.existsSync(localBuild)) {
-    return localBuild;
-  }
+// ================= DATABASE =================
+function initDatabase() {
+  const dbPath = path.join(app.getPath('userData'), 'bookit.db');
+  diagnostics.log('info', `DB Path: ${dbPath}`);
 
-  const fallbackBuild = path.join(process.resourcesPath || __dirname, 'app.asar', 'dist', 'index.html');
-  if (fs.existsSync(fallbackBuild)) {
-    return fallbackBuild;
-  }
+  db = new sqlite3.Database(dbPath);
 
-  return localBuild;
+  db.serialize(() => {
+    // Parties
+    db.run(`CREATE TABLE IF NOT EXISTS parties (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT,
+      phone TEXT,
+      type TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME,
+      sync_status INTEGER DEFAULT 0
+    )`);
+
+    // Invoices
+    db.run(`CREATE TABLE IF NOT EXISTS invoices (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      party_id INTEGER,
+      invoice_no TEXT,
+      total REAL,
+      paid REAL DEFAULT 0,
+      status TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME,
+      sync_status INTEGER DEFAULT 0
+    )`);
+
+    // Invoice Items
+    db.run(`CREATE TABLE IF NOT EXISTS invoice_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      invoice_id INTEGER,
+      item_name TEXT,
+      qty REAL,
+      price REAL,
+      total REAL
+    )`);
+
+    // Payments
+    db.run(`CREATE TABLE IF NOT EXISTS payments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      party_id INTEGER,
+      amount REAL,
+      method TEXT,
+      reference TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      sync_status INTEGER DEFAULT 0
+    )`);
+
+    // Settings
+    db.run(`CREATE TABLE IF NOT EXISTS settings (
+      key TEXT PRIMARY KEY,
+      value TEXT
+    )`);
+  });
 }
 
-function verifyBuildExists(indexPath) {
-  diagnostics.log('info', `Verifying local build file: ${indexPath}`);
+// ================= IPC =================
+function setupIPC() {
 
-  if (!fs.existsSync(indexPath)) {
-    diagnostics.log('error', `Production build missing at: ${indexPath}`);
-    dialog.showErrorBox(
-      'BookIt Startup Error',
-      `Unable to find the local application bundle at:\n${indexPath}\n\nRun npm run build and package again.`
-    );
-    app.quit();
-    return false;
-  }
+  // DB PATH
+  ipcMain.handle('get-db-path', () => {
+    return path.join(app.getPath('userData'), 'bookit.db');
+  });
 
-  return true;
+  // GENERIC QUERY
+  ipcMain.handle('db-query', (_, sql, params = []) => {
+    return new Promise((resolve, reject) => {
+      db.all(sql, params, (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows);
+      });
+    });
+  });
+
+  // SAVE INVOICE
+  ipcMain.handle('save-invoice', (_, invoice) => {
+    return new Promise((resolve, reject) => {
+      db.run(
+        `INSERT INTO invoices (party_id, invoice_no, total, status)
+         VALUES (?, ?, ?, ?)`,
+        [invoice.party_id, invoice.invoice_no, invoice.total, 'unpaid'],
+        function (err) {
+          if (err) reject(err);
+          else resolve({ id: this.lastID });
+        }
+      );
+    });
+  });
+
+  // GET INVOICES
+  ipcMain.handle('get-invoices', () => {
+    return new Promise((resolve, reject) => {
+      db.all(`SELECT * FROM invoices`, [], (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows);
+      });
+    });
+  });
+
+  // SAVE PAYMENT
+  ipcMain.handle('save-payment', (_, payment) => {
+    return new Promise((resolve, reject) => {
+      db.run(
+        `INSERT INTO payments (party_id, amount, method, reference)
+         VALUES (?, ?, ?, ?)`,
+        [payment.party_id, payment.amount, payment.method, payment.reference],
+        function (err) {
+          if (err) reject(err);
+          else resolve(true);
+        }
+      );
+    });
+  });
+
+  // BACKUP
+  ipcMain.handle('backup-db', (_, dest) => {
+    const dbPath = path.join(app.getPath('userData'), 'bookit.db');
+    fs.copyFileSync(dbPath, dest);
+    return true;
+  });
+
+  // RESTORE
+  ipcMain.handle('restore-db', (_, src) => {
+    const dbPath = path.join(app.getPath('userData'), 'bookit.db');
+    fs.copyFileSync(src, dbPath);
+    return true;
+  });
 }
 
-function setupAutoUpdate() {
-  if (isDev) {
-    diagnostics.log('info', 'Skipping auto-updater in development mode');
-    return;
-  }
-
-  diagnostics.log('info', 'Preparing auto-update architecture');
-
-  autoUpdater.on('checking-for-update', () => diagnostics.log('info', 'Auto-updater: checking for update'));
-  autoUpdater.on('update-available', () => diagnostics.log('info', 'Auto-updater: update available'));
-  autoUpdater.on('update-not-available', () => diagnostics.log('info', 'Auto-updater: no update available'));
-  autoUpdater.on('download-progress', (progress) => diagnostics.log('info', `Auto-updater progress: ${Math.round(progress.percent)}%`));
-  autoUpdater.on('update-downloaded', () => diagnostics.log('info', 'Auto-updater: update downloaded - will install on quit'));
-  autoUpdater.on('error', (error) => diagnostics.log('error', `Auto-updater error: ${error?.message || error}`));
-
-  autoUpdater.checkForUpdatesAndNotify().catch((error) => diagnostics.log('error', `Auto-updater failed: ${error?.message || error}`));
-}
-
+// ================= WINDOW =================
 function createWindow() {
-  diagnostics.log('info', 'Creating application window...');
-
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
-    minWidth: 1024,
-    minHeight: 700,
-    autoHideMenuBar: true,
     show: false,
+    autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
-      nodeIntegration: false,
       contextIsolation: true,
-      sandbox: true,
-      devTools: isDev,
     },
   });
 
-  mainWindow.once('ready-to-show', () => {
-    diagnostics.log('info', 'Window is ready to show');
-    mainWindow.show();
-  });
+  mainWindow.once('ready-to-show', () => mainWindow.show());
 
-  mainWindow.webContents.on('did-finish-load', () => diagnostics.log('info', 'Renderer finished loading'));
-
-  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL, isMainFrame) => {
-    diagnostics.log('warn', `Failed to load ${validatedURL} (${errorCode}): ${errorDescription}`);
-    if (isMainFrame) {
-      const indexPath = getIndexPath();
-      if (verifyBuildExists(indexPath)) {
-        mainWindow.loadFile(indexPath).catch((error) => diagnostics.log('error', `Reload failed: ${error.message}`));
-      }
-    }
-  });
-
-  mainWindow.webContents.on('crashed', () => {
-    diagnostics.log('error', 'Renderer process crashed');
-    dialog.showErrorBox('App Crashed', 'BookIt has crashed. Please restart the application.');
-  });
+  if (isDev) {
+    mainWindow.loadURL('http://localhost:5173');
+  } else {
+    mainWindow.loadFile(path.join(__dirname, 'dist/index.html'));
+  }
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     if (url.startsWith('http')) {
@@ -104,71 +172,19 @@ function createWindow() {
     }
     return { action: 'allow' };
   });
-
-  mainWindow.on('closed', () => {
-    diagnostics.log('info', 'Main window closed');
-    mainWindow = null;
-    diagnostics.logSessionEnd();
-  });
-
-  const indexPath = getIndexPath();
-  if (!verifyBuildExists(indexPath)) {
-    return;
-  }
-
-  if (isDev) {
-    diagnostics.log('info', 'Loading development server at http://localhost:5173');
-    mainWindow.loadURL('http://localhost:5173').catch((error) => diagnostics.log('error', `Dev load failed: ${error.message}`));
-    mainWindow.webContents.openDevTools();
-  } else {
-    diagnostics.log('info', `Loading local production build from: ${indexPath}`);
-    mainWindow.loadFile(indexPath).catch((error) => {
-      diagnostics.log('error', `Production load failed: ${error.message}`);
-      dialog.showErrorBox('Startup Failed', `Unable to load BookIt UI: ${error.message}`);
-      app.quit();
-    });
-  }
 }
 
+// ================= APP =================
 function initializeApp() {
-  app.setAppUserModelId('com.bookit.app');
-  app.disableHardwareAcceleration();
-
-  if (!app.requestSingleInstanceLock()) {
-    diagnostics.log('warn', 'Another instance is already running');
-    app.quit();
-    return;
-  }
-
-  app.on('second-instance', () => {
-    if (mainWindow) {
-      if (mainWindow.isMinimized()) mainWindow.restore();
-      mainWindow.focus();
-    }
+  app.whenReady().then(() => {
+    initDatabase();
+    setupIPC();
+    createWindow();
   });
 
   app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') app.quit();
   });
-
-  app.on('activate', () => {
-    if (!mainWindow) createWindow();
-  });
-
-  app.whenReady()
-    .then(() => {
-      diagnostics.logAppStart();
-      setupAutoUpdate();
-      createWindow();
-    })
-    .catch((error) => {
-      diagnostics.logError(error, 'app-ready');
-      dialog.showErrorBox('BookIt Startup Error', `Unable to start BookIt: ${error.message}`);
-      app.quit();
-    });
-
-  process.on('uncaughtException', (error) => diagnostics.logError(error, 'uncaughtException'));
-  process.on('unhandledRejection', (reason) => diagnostics.log('error', `Unhandled Promise rejection: ${reason}`));
 }
 
 initializeApp();
