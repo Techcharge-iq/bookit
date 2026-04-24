@@ -1,4 +1,4 @@
-import { defineConfig } from "vite";
+import { defineConfig, splitVendorChunkPlugin } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 
@@ -6,7 +6,7 @@ export default defineConfig({
   base: "./",
   logLevel: "warn",
 
-  plugins: [react()],
+  plugins: [react(), splitVendorChunkPlugin()],
 
   server: {
     host: "::",
@@ -21,17 +21,9 @@ export default defineConfig({
     emptyOutDir: true,
     sourcemap: false,
     target: "es2020",
-    minify: "esbuild",
+    minify: "esbuild" as const,
     cssCodeSplit: true,
     assetsInlineLimit: 4096,
-
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          vendor: ["react", "react-dom", "react-router-dom"],
-        },
-      },
-    },
   },
 
   resolve: {
