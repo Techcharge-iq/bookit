@@ -4,12 +4,13 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "next-themes";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { HashRouter, Routes, Route } from "react-router-dom";
 import { AppProvider } from "@/contexts/AppContext";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useToast } from "@/hooks/use-toast";
 import { setConflictHandler } from "@/lib/apiClient";
+
 import Dashboard from "./pages/Dashboard";
 import QuotationsList from "./pages/QuotationsList";
 import QuotationForm from "./pages/QuotationForm";
@@ -41,29 +42,32 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-/** Listens for localStorage quota/write errors and shows a destructive toast. */
 function StorageErrorListener() {
   const { toast } = useToast();
+
   useEffect(() => {
     const handler = (e: Event) => {
       const { message, isQuota } = (e as CustomEvent).detail ?? {};
       toast({
-        title: isQuota ? 'Storage full' : 'Could not save data',
-        description: message ?? 'An unexpected storage error occurred.',
-        variant: 'destructive',
+        title: isQuota ? "Storage full" : "Could not save data",
+        description: message ?? "An unexpected storage error occurred.",
+        variant: "destructive",
       });
     };
-    window.addEventListener('bookit:storage-error', handler);
-    return () => window.removeEventListener('bookit:storage-error', handler);
+
+    window.addEventListener("bookit:storage-error", handler);
+    return () => window.removeEventListener("bookit:storage-error", handler);
   }, [toast]);
 
-  // LAN concurrency: another user changed the same record we tried to save.
   useEffect(() => {
     setConflictHandler((collection) => {
       toast({
-        title: 'Record changed by another user',
-        description: `Your edit on ${collection.replace('/api/records/', '')} clashed with a newer change. The latest version will appear shortly.`,
-        variant: 'destructive',
+        title: "Record changed by another user",
+        description: `Your edit on ${collection.replace(
+          "/api/records/",
+          ""
+        )} clashed with a newer change.`,
+        variant: "destructive",
       });
     });
   }, [toast]);
@@ -74,14 +78,15 @@ function StorageErrorListener() {
 const App = () => (
   <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
     <QueryClientProvider client={queryClient}>
-      {/* Global error boundary — catches anything that escapes the route boundaries */}
       <ErrorBoundary>
         <AppProvider>
           <TooltipProvider>
             <Toaster />
             <Sonner />
             <StorageErrorListener />
-            <BrowserRouter>
+
+            {/* IMPORTANT: HashRouter for Electron */}
+            <HashRouter>
               <AppLayout>
                 <Routes>
                   <Route path="/" element={<ErrorBoundary inline><Dashboard /></ErrorBoundary>} />
@@ -117,7 +122,8 @@ const App = () => (
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </AppLayout>
-            </BrowserRouter>
+            </HashRouter>
+
           </TooltipProvider>
         </AppProvider>
       </ErrorBoundary>
