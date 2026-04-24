@@ -11,60 +11,35 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useToast } from "@/hooks/use-toast";
 import { setConflictHandler } from "@/lib/apiClient";
 
-// CORE: Quick-load (not lazy)
 import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
 
-// LAZY: Quoted/Invoice Forms
 const QuotationsList = lazy(() => import("./pages/QuotationsList"));
 const QuotationForm = lazy(() => import("./pages/QuotationForm"));
 const InvoicesList = lazy(() => import("./pages/InvoicesList"));
 const InvoiceForm = lazy(() => import("./pages/InvoiceForm"));
-
-// LAZY: Purchases
 const PurchaseInvoicesList = lazy(() => import("./pages/PurchaseInvoicesList"));
 const PurchaseInvoiceForm = lazy(() => import("./pages/PurchaseInvoiceForm"));
-
-// LAZY: Clients & Payments
 const ClientsList = lazy(() => import("./pages/ClientsList"));
 const ClientStatement = lazy(() => import("./pages/ClientStatement"));
 const PaymentForm = lazy(() => import("./pages/PaymentForm"));
 const PaymentsReceipts = lazy(() => import("./pages/PaymentsReceipts"));
-
-// LAZY: Vouchers
 const VoucherDashboard = lazy(() => import("./pages/VoucherDashboard"));
 const ExpensesVoucher = lazy(() => import("./pages/ExpensesVoucher"));
 const ContraVoucher = lazy(() => import("./pages/ContraVoucher"));
 const LoanGivenVoucher = lazy(() => import("./pages/LoanGivenVoucher"));
 const LoanReceivedVoucher = lazy(() => import("./pages/LoanReceivedVoucher"));
 const JournalVoucher = lazy(() => import("./pages/JournalVoucher"));
-
-// LAZY: Items & Accounts
 const ItemsList = lazy(() => import("./pages/ItemsList"));
-const ChartOfAccounts = lazy(() => import("./pages/ChartOfAccounts"));
-const AccountStatement = lazy(() => import("./pages/AccountStatement"));
-
-// LAZY: Reports
 const ItemReport = lazy(() => import("./pages/reports/ItemReport"));
 const VatReturn = lazy(() => import("./pages/reports/VatReturn"));
+const ChartOfAccounts = lazy(() => import("./pages/ChartOfAccounts"));
+const AccountStatement = lazy(() => import("./pages/AccountStatement"));
+const Settings = lazy(() => import("./pages/Settings"));
 const ProfitAndLoss = lazy(() => import("./pages/reports/ProfitAndLoss"));
 const BalanceSheet = lazy(() => import("./pages/reports/BalanceSheet"));
 const TrialBalance = lazy(() => import("./pages/reports/TrialBalance"));
 const AgingReport = lazy(() => import("./pages/reports/AgingReport"));
-
-// LAZY: Settings (low priority)
-const Settings = lazy(() => import("./pages/Settings"));
-
-// Loading indicator
-function PageLoader() {
-  return (
-    <div className="flex items-center justify-center w-full h-full">
-      <div className="animate-spin">
-        <div className="w-8 h-8 border-4 border-gray-200 border-t-gray-800 rounded-full" />
-      </div>
-    </div>
-  );
-}
 
 const queryClient = new QueryClient();
 
@@ -114,7 +89,7 @@ const App = () => (
             {/* IMPORTANT: HashRouter for Electron */}
             <HashRouter>
               <AppLayout>
-                <Suspense fallback={<PageLoader />}>
+                <Suspense fallback={<div className="flex items-center justify-center h-full w-full">Loading…</div>}>
                   <Routes>
                     <Route path="/" element={<ErrorBoundary inline><Dashboard /></ErrorBoundary>} />
                     <Route path="/quotations" element={<ErrorBoundary inline><QuotationsList /></ErrorBoundary>} />

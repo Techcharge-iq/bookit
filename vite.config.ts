@@ -1,4 +1,4 @@
-import { defineConfig } from "vite";
+import { defineConfig, splitVendorChunkPlugin } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 
@@ -6,7 +6,7 @@ export default defineConfig({
   base: "./",
   logLevel: "warn",
 
-  plugins: [react()],
+  plugins: [react(), splitVendorChunkPlugin()],
 
   server: {
     host: "::",
@@ -25,22 +25,6 @@ export default defineConfig({
     minify: "esbuild" as const,
     cssCodeSplit: true,
     assetsInlineLimit: 4096,
-
-    rollupOptions: {
-      output: {
-        manualChunks(id) {
-          if (id.includes("node_modules")) {
-            if (id.includes("react") || id.includes("react-dom") || id.includes("react-router-dom") || id.includes("@tanstack/react-query")) {
-              return "vendor-react";
-            }
-            if (id.includes("@radix-ui") || id.includes("lucide-react") || id.includes("framer-motion") || id.includes("recharts") || id.includes("date-fns")) {
-              return "vendor-ui";
-            }
-            return "vendor";
-          }
-        },
-      },
-    },
   },
 
   resolve: {
@@ -49,3 +33,4 @@ export default defineConfig({
     },
   },
 });
+
