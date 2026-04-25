@@ -290,7 +290,7 @@ export default function InvoiceForm() {
       <Card>
         <CardHeader className="py-2.5 px-3"><CardTitle className="text-sm">Client & Details</CardTitle></CardHeader>
         <CardContent className="px-3 pb-3">
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-3 sm:grid-cols-3">
             <div className="space-y-1.5">
               <Label className="text-xs">Client *</Label>
               <div className="flex gap-1.5">
@@ -310,6 +310,24 @@ export default function InvoiceForm() {
             <div className="space-y-1.5">
               <Label className="text-xs">Due Date</Label>
               <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className="h-9" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Salesman *</Label>
+              <div className="flex gap-1.5">
+                <Select value={salesmanId} onValueChange={setSalesmanId}>
+                  <SelectTrigger className="flex-1 h-9"><SelectValue placeholder="Select salesman" /></SelectTrigger>
+                  <SelectContent>
+                    {salesmen.length === 0 ? (
+                      <SelectItem value="" disabled>No salesmen available</SelectItem>
+                    ) : (
+                      salesmen.map((s) => (<SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>))
+                    )}
+                  </SelectContent>
+                </Select>
+                <Button type="button" variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={() => setIsAddSalesmanOpen(true)}>
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </div>
         </CardContent>

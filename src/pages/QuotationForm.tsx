@@ -261,7 +261,7 @@ export default function QuotationForm() {
           <CardTitle className="text-sm">Client & Status</CardTitle>
         </CardHeader>
         <CardContent className="px-3 pb-3">
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-3 sm:grid-cols-3">
             <div className="space-y-1.5">
               <Label className="text-xs">Client *</Label>
               <div className="flex gap-1.5">
