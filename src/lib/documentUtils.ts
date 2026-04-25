@@ -1,5 +1,6 @@
 import type { Quotation, Invoice, Client, BusinessSettings } from '@/types';
 import { currencySymbols } from '@/types';
+import html2pdf from 'html2pdf.js';
 
 interface DocumentData {
   type: 'quotation' | 'invoice';
@@ -63,7 +64,7 @@ function numberToWords(num: number, currency: string): string {
   return result;
 }
 
-export async function generatePDF({ type, document, client, settings }: DocumentData) {
+export async function generatePDF({ type, document, client, settings, download = false }: DocumentData & { download?: boolean }) {
   const currencySymbol = currencySymbols[settings.currency];
   
   // Create a printable HTML version
@@ -93,22 +94,55 @@ export async function generatePDF({ type, document, client, settings }: Document
           display: flex;
           justify-content: space-between;
           align-items: flex-start;
-          margin-bottom: 18px;
-          padding-bottom: 8px;
+          margin-bottom: 30px;
+          padding-bottom: 20px;
+          border-bottom: 2px solid #e5e7eb;
+          gap: 20px;
+        }
+        .company-info {
+          flex: 1;
+        }
+        .company-name {
+          font-size: 24px;
+          font-weight: bold;
+          color: #1a1a2e;
+          margin-bottom: 8px;
+        }
+        .company-details {
+          font-size: 14px;
+          color: #6b7280;
+          line-height: 1.6;
+        }
+        .logo-section {
+          display: flex;
+          align-items: center;
           gap: 12px;
         }
-        .logo-section { display: flex; align-items: center; gap: 12px; }
-        .logo { width: 56px; height: 56px; object-fit: contain; }
-        .business-name { font-size: 18px; font-weight: 700; color: #111827; }
-        .doc-info { text-align: right; }
+        .logo {
+          width: 64px;
+          height: 64px;
+          object-fit: contain;
+        }
+        .doc-info {
+          text-align: right;
+          min-width: 150px;
+        }
         .doc-type {
-          font-size: 16px;
-          font-weight: 700;
+          font-size: 20px;
+          font-weight: bold;
           text-transform: uppercase;
           color: ${isInvoice ? '#10b981' : '#3b82f6'};
+          margin-bottom: 8px;
         }
-        .doc-number { font-size: 13px; color: #374151; margin-top: 2px; }
-        .doc-date { font-size: 12px; color: #6b7280; }
+        .doc-number {
+          font-size: 16px;
+          color: #374151;
+          margin-bottom: 4px;
+        }
+        .doc-date {
+          font-size: 14px;
+          color: #6b7280;
+        }
         
         .parties {
           display: flex;
@@ -204,15 +238,16 @@ export async function generatePDF({ type, document, client, settings }: Document
     </head>
     <body>
       <div class="header">
+        <div class="company-info">
+          <div class="company-name">${settings.name || 'Your Business'}</div>
+          <div class="company-details">
+            ${settings.phone ? `📞 ${settings.phone}<br>` : ''}
+            ${settings.email ? `✉️ ${settings.email}<br>` : ''}
+            ${settings.address ? `📍 ${settings.address}` : ''}
+          </div>
+        </div>
         <div class="logo-section">
           ${settings.logo ? `<img src="${settings.logo}" class="logo" alt="Logo">` : ''}
-          <div>
-            <div class="business-name">${settings.name || 'Your Business'}</div>
-            <div style="font-size: 13px; color: #6b7280; margin-top: 4px;">
-              ${settings.email || ''}
-              ${settings.phone ? ` • ${settings.phone}` : ''}
-            </div>
-          </div>
         </div>
         <div class="doc-info">
           <div class="doc-type">${type}</div>
@@ -224,14 +259,12 @@ export async function generatePDF({ type, document, client, settings }: Document
       
       <div class="parties">
         <div class="party-section">
-          <div style="display:flex;flex-direction:column;align-items:flex-start;">
-            ${settings.logo ? `<img src="${settings.logo}" class="logo" alt="Logo">` : ''}
+          <h3>From</h3>
+          <div class="party-name">${settings.name || 'Your Business'}</div>
+          <div class="party-details">
+            ${settings.address ? `${settings.address}<br>` : ''}
+            ${settings.taxNumber ? `GST: ${settings.taxNumber}` : ''}
           </div>
-          <div>
-            <div class="party-name">${settings.name || 'Your Business'}</div>
-            <div class="party-details">${settings.address ? `${settings.address}<br>` : ''}${settings.taxNumber ? `GST: ${settings.taxNumber}` : ''}</div>
-          </div>
-        
         </div>
         <div class="party-section">
           <h3>Bill To</h3>
@@ -340,8 +373,26 @@ export async function generatePDF({ type, document, client, settings }: Document
     </html>
   `;
 
-  printWindow.document.write(html);
-  printWindow.document.close();
+  if (download) {
+    const options = {
+      margin: 0.5,
+      filename: `${type}_${document.number}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+    };
+
+    await html2pdf().set(options).from(html).save();
+  } else {
+    // Original print functionality
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      throw new Error('POPUP_BLOCKED');
+    }
+
+    printWindow.document.write(html);
+    printWindow.document.close();
+  }
 }
 
 export async function shareViaWhatsApp({ type, document, client, settings }: DocumentData) {
@@ -408,18 +459,33 @@ export async function generatePDFBlob({ type, document, client, settings }: Docu
           margin-bottom: 40px;
           padding-bottom: 20px;
           border-bottom: 2px solid #e5e7eb;
+          gap: 20px;
+        }
+        .company-info {
+          flex: 1;
+        }
+        .company-name {
+          font-size: 24px;
+          font-weight: bold;
+          color: #1a1a2e;
+          margin-bottom: 8px;
+        }
+        .company-details {
+          font-size: 14px;
+          color: #6b7280;
+          line-height: 1.6;
         }
         .logo-section { display: flex; align-items: center; gap: 12px; }
-        .logo { width: 60px; height: 60px; object-fit: contain; }
-        .business-name { font-size: 24px; font-weight: bold; color: #3b82f6; }
-        .doc-info { text-align: right; }
+        .logo { width: 64px; height: 64px; object-fit: contain; }
+        .doc-info { text-align: right; min-width: 150px; }
         .doc-type { 
-          font-size: 28px; 
+          font-size: 20px; 
           font-weight: bold; 
           text-transform: uppercase;
           color: ${isInvoice ? '#10b981' : '#3b82f6'};
+          margin-bottom: 8px;
         }
-        .doc-number { font-size: 14px; color: #6b7280; margin-top: 4px; }
+        .doc-number { font-size: 16px; color: #374151; margin-bottom: 4px; }
         .doc-date { font-size: 14px; color: #6b7280; }
         
         .parties { 
@@ -529,15 +595,16 @@ export async function generatePDFBlob({ type, document, client, settings }: Docu
     </head>
     <body>
       <div class="header">
+        <div class="company-info">
+          <div class="company-name">${settings.name || 'Your Business'}</div>
+          <div class="company-details">
+            ${settings.phone ? `📞 ${settings.phone}<br>` : ''}
+            ${settings.email ? `✉️ ${settings.email}<br>` : ''}
+            ${settings.address ? `📍 ${settings.address}` : ''}
+          </div>
+        </div>
         <div class="logo-section">
           ${settings.logo ? `<img src="${settings.logo}" class="logo" alt="Logo">` : ''}
-          <div>
-            <div class="business-name">${settings.name || 'Your Business'}</div>
-            <div style="font-size: 13px; color: #6b7280; margin-top: 4px;">
-              ${settings.email || ''}
-              ${settings.phone ? ` • ${settings.phone}` : ''}
-            </div>
-          </div>
         </div>
         <div class="doc-info">
           <div class="doc-type">${type}</div>
