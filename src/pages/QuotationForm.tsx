@@ -302,11 +302,7 @@ export default function QuotationForm() {
                 <Select value={salesmanId} onValueChange={setSalesmanId}>
                 <SelectTrigger className="flex-1 h-9"><SelectValue placeholder="Select salesman" /></SelectTrigger>
                 <SelectContent>
-                  {salesmen.length === 0 ? (
-                    <SelectItem value="" disabled>No salesmen available</SelectItem>
-                  ) : (
-                    salesmen.map((s) => (<SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>))
-                  )}
+                  {salesmen.map((s) => (<SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>))}
                 </SelectContent>
               </Select>
                 <Button type="button" variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={() => setIsAddSalesmanOpen(true)}>
