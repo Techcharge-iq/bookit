@@ -88,7 +88,7 @@ export async function generatePDF({ type, document, client, settings, download =
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-          padding: 8px 15px;
+          padding: 20px;
           color: #1a1a2e;
           max-width: 100%;
           margin: 0 auto;
@@ -118,14 +118,14 @@ export async function generatePDF({ type, document, client, settings, download =
           flex: 1;
         }
         .company-name {
-          font-size: 14px;
+          font-size: 20px;
           font-weight: 700;
           color: #1a1a2e;
           margin-bottom: 3px;
           letter-spacing: -0.5px;
         }
         .company-details {
-          font-size: 9px;
+          font-size: 12px;
           color: #6b7280;
           line-height: 1.3;
         }
@@ -134,7 +134,7 @@ export async function generatePDF({ type, document, client, settings, download =
           min-width: 150px;
         }
         .doc-type {
-          font-size: 20px;
+          font-size: 25px;
           font-weight: 700;
           text-transform: uppercase;
           color: ${isInvoice ? '#059669' : '#2563eb'};
@@ -142,7 +142,7 @@ export async function generatePDF({ type, document, client, settings, download =
           letter-spacing: 0.5px;
         }
         .doc-number {
-          font-size: 14px;
+          font-size: 16px;
           color: #374151;
           margin-bottom: 2px;
           font-weight: 600;
@@ -156,7 +156,7 @@ export async function generatePDF({ type, document, client, settings, download =
         .parties {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 20px;
+          gap: 30px;
           margin-bottom: 12px;
           padding: 8px 0;
         }
@@ -175,7 +175,7 @@ export async function generatePDF({ type, document, client, settings, download =
           color: #1a1a2e;
         }
         .party-details { 
-          font-size: 11px; 
+          font-size: 13px; 
           color: #4b5563; 
           line-height: 1.4;
         }
@@ -212,7 +212,7 @@ export async function generatePDF({ type, document, client, settings, download =
           font-size: 11px;
         }
         .item-desc { 
-          font-size: 10px; 
+          font-size: 13px; 
           color: #6b7280; 
           margin-top: 1px;
         }
@@ -233,7 +233,7 @@ export async function generatePDF({ type, document, client, settings, download =
           display: flex; 
           justify-content: space-between;
           padding: 4px 0;
-          font-size: 11px;
+          font-size: 13px;
           color: #6b7280;
         }
         .total-row span:last-child {
@@ -293,6 +293,7 @@ export async function generatePDF({ type, document, client, settings, download =
             ${settings.phone ? `📞 ${settings.phone}<br>` : ''}
             ${settings.email ? `✉️ ${settings.email}<br>` : ''}
             ${settings.address ? `📍 ${settings.address}` : ''}
+            ${settings.taxNumber ? `GST: ${settings.taxNumber}` : ''}
           </div>
         </div>
         <div class="logo-section">
@@ -302,19 +303,10 @@ export async function generatePDF({ type, document, client, settings, download =
           <div class="doc-type">${type}</div>
           <div class="doc-number">${document.number}</div>
           <div class="doc-date">Date: ${new Date(document.createdAt).toLocaleDateString('en-IN')}</div>
-          ${isInvoice && invoice ? `<div class="doc-date">Due: ${new Date(invoice.dueDate).toLocaleDateString('en-IN')}</div>` : ''}
         </div>
       </div>
       
       <div class="parties">
-        <div class="party-section">
-          <h3>From</h3>
-          <div class="party-name">${settings.name || 'Your Business'}</div>
-          <div class="party-details">
-            ${settings.address ? `${settings.address}<br>` : ''}
-            ${settings.taxNumber ? `GST: ${settings.taxNumber}` : ''}
-          </div>
-        </div>
         <div class="party-section">
           <h3>Bill To</h3>
           <div class="party-name">${client?.name || 'Client'}</div>
