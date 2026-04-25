@@ -93,42 +93,42 @@ export async function generatePDF({ type, document, client, settings, download =
         .header {
           display: flex;
           justify-content: space-between;
-          align-items: flex-start;
-          margin-bottom: 30px;
+          align-items: center;
+          margin-bottom: 40px;
           padding-bottom: 20px;
           border-bottom: 2px solid #e5e7eb;
-          gap: 20px;
+        }
+        .header-left {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          flex: 1;
+        }
+        .logo {
+          width: 48px;
+          height: 48px;
+          object-fit: contain;
         }
         .company-info {
           flex: 1;
         }
         .company-name {
-          font-size: 24px;
+          font-size: 22px;
           font-weight: bold;
           color: #1a1a2e;
-          margin-bottom: 8px;
+          margin-bottom: 6px;
         }
         .company-details {
-          font-size: 14px;
+          font-size: 13px;
           color: #6b7280;
-          line-height: 1.6;
+          line-height: 1.5;
         }
-        .logo-section {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
-        .logo {
-          width: 64px;
-          height: 64px;
-          object-fit: contain;
-        }
-        .doc-info {
+        .header-right {
           text-align: right;
-          min-width: 150px;
+          min-width: 180px;
         }
         .doc-type {
-          font-size: 20px;
+          font-size: 24px;
           font-weight: bold;
           text-transform: uppercase;
           color: ${isInvoice ? '#10b981' : '#3b82f6'};
@@ -382,7 +382,50 @@ export async function generatePDF({ type, document, client, settings, download =
       jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
     };
 
-    await html2pdf().set(options).from(html).save();
+    // Update HTML with new header structure
+    const updatedHtml = html.replace(
+      /<div class="header">[\s\S]*?<\/div>/,
+      `<div class="header">
+        <div class="header-left">
+          ${settings.logo ? `<img src="${settings.logo}" class="logo" alt="Logo">` : ''}
+          <div class="company-info">
+            <div class="company-name">${settings.name || 'Your Business'}</div>
+            <div class="company-details">
+              ${settings.phone ? `${settings.phone}<br>` : ''}
+              ${settings.email ? `${settings.email}<br>` : ''}
+              ${settings.address ? `${settings.address}` : ''}
+            </div>
+          </div>
+        </div>
+        <div class="header-right">
+          <div class="doc-type">${type}</div>
+          <div class="doc-number">${document.number}</div>
+          <div class="doc-date">Date: ${new Date(document.createdAt).toLocaleDateString('en-IN')}</div>
+          ${isInvoice && invoice ? `<div class="doc-date">Due: ${new Date(invoice.dueDate).toLocaleDateString('en-IN')}</div>` : ''}
+        </div>
+      </div>`
+    );
+
+    // Generate PDF as blob and download directly
+    const element = document.createElement('div');
+    element.innerHTML = updatedHtml;
+    element.style.position = 'absolute';
+    element.style.left = '-9999px';
+    document.body.appendChild(element);
+
+    try {
+      const pdfBlob = await html2pdf().set(options).from(element).outputPdf('blob');
+      const url = URL.createObjectURL(pdfBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${type}_${document.number}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } finally {
+      document.body.removeChild(element);
+    }
   } else {
     // Original print functionality
     const printWindow = window.open('', '_blank');
@@ -455,31 +498,42 @@ export async function generatePDFBlob({ type, document, client, settings }: Docu
         .header { 
           display: flex; 
           justify-content: space-between; 
-          align-items: flex-start;
+          align-items: center;
           margin-bottom: 40px;
           padding-bottom: 20px;
           border-bottom: 2px solid #e5e7eb;
-          gap: 20px;
+        }
+        .header-left {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          flex: 1;
+        }
+        .logo {
+          width: 48px;
+          height: 48px;
+          object-fit: contain;
         }
         .company-info {
           flex: 1;
         }
         .company-name {
-          font-size: 24px;
+          font-size: 22px;
           font-weight: bold;
           color: #1a1a2e;
-          margin-bottom: 8px;
+          margin-bottom: 6px;
         }
         .company-details {
-          font-size: 14px;
+          font-size: 13px;
           color: #6b7280;
-          line-height: 1.6;
+          line-height: 1.5;
         }
-        .logo-section { display: flex; align-items: center; gap: 12px; }
-        .logo { width: 64px; height: 64px; object-fit: contain; }
-        .doc-info { text-align: right; min-width: 150px; }
+        .header-right {
+          text-align: right;
+          min-width: 180px;
+        }
         .doc-type { 
-          font-size: 20px; 
+          font-size: 24px; 
           font-weight: bold; 
           text-transform: uppercase;
           color: ${isInvoice ? '#10b981' : '#3b82f6'};
@@ -716,5 +770,29 @@ export async function generatePDFBlob({ type, document, client, settings }: Docu
     </html>
   `;
 
-  return html;
+  // Update HTML with new header structure
+  const updatedHtml = html.replace(
+    /<div class="header">[\s\S]*?<\/div>/,
+    `<div class="header">
+      <div class="header-left">
+        ${settings.logo ? `<img src="${settings.logo}" class="logo" alt="Logo">` : ''}
+        <div class="company-info">
+          <div class="company-name">${settings.name || 'Your Business'}</div>
+          <div class="company-details">
+            ${settings.phone ? `${settings.phone}<br>` : ''}
+            ${settings.email ? `${settings.email}<br>` : ''}
+            ${settings.address ? `${settings.address}` : ''}
+          </div>
+        </div>
+      </div>
+      <div class="header-right">
+        <div class="doc-type">${type}</div>
+        <div class="doc-number">${document.number}</div>
+        <div class="doc-date">Date: ${new Date(document.createdAt).toLocaleDateString('en-IN')}</div>
+        ${isInvoice && invoice ? `<div class="doc-date">Due: ${new Date(invoice.dueDate).toLocaleDateString('en-IN')}</div>` : ''}
+      </div>
+    </div>`
+  );
+
+  return updatedHtml;
 }
