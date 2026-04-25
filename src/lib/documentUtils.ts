@@ -414,15 +414,7 @@ export async function generatePDF({ type, document, client, settings, download =
     document.body.appendChild(element);
 
     try {
-      const pdfBlob = await html2pdf().set(options).from(element).outputPdf('blob');
-      const url = URL.createObjectURL(pdfBlob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${type}_${document.number}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      await html2pdf().set(options).from(element).save();
     } finally {
       document.body.removeChild(element);
     }
