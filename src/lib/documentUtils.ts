@@ -1,6 +1,5 @@
 import type { Quotation, Invoice, Client, BusinessSettings } from '@/types';
 import { currencySymbols } from '@/types';
-import html2pdf from 'html2pdf.js';
 
 interface DocumentData {
   type: 'quotation' | 'invoice';
@@ -93,134 +92,177 @@ export async function generatePDF({ type, document, client, settings, download =
         .header {
           display: flex;
           justify-content: space-between;
-          align-items: center;
-          margin-bottom: 40px;
-          padding-bottom: 20px;
-          border-bottom: 2px solid #e5e7eb;
+          align-items: flex-start;
+          margin-bottom: 50px;
+          padding-bottom: 30px;
+          border-bottom: 3px solid #e5e7eb;
         }
         .header-left {
           display: flex;
-          align-items: center;
-          gap: 16px;
+          align-items: flex-start;
+          gap: 18px;
           flex: 1;
         }
         .logo {
-          width: 48px;
-          height: 48px;
+          width: 60px;
+          height: 60px;
           object-fit: contain;
+          flex-shrink: 0;
         }
         .company-info {
           flex: 1;
         }
         .company-name {
-          font-size: 22px;
-          font-weight: bold;
+          font-size: 24px;
+          font-weight: 700;
           color: #1a1a2e;
-          margin-bottom: 6px;
+          margin-bottom: 8px;
+          letter-spacing: -0.5px;
         }
         .company-details {
           font-size: 13px;
           color: #6b7280;
-          line-height: 1.5;
+          line-height: 1.6;
         }
         .header-right {
           text-align: right;
-          min-width: 180px;
+          min-width: 200px;
         }
         .doc-type {
-          font-size: 24px;
-          font-weight: bold;
+          font-size: 28px;
+          font-weight: 700;
           text-transform: uppercase;
-          color: ${isInvoice ? '#10b981' : '#3b82f6'};
-          margin-bottom: 8px;
+          color: ${isInvoice ? '#059669' : '#2563eb'};
+          margin-bottom: 10px;
+          letter-spacing: 0.5px;
         }
         .doc-number {
-          font-size: 16px;
+          font-size: 18px;
           color: #374151;
-          margin-bottom: 4px;
+          margin-bottom: 6px;
+          font-weight: 600;
         }
         .doc-date {
-          font-size: 14px;
+          font-size: 13px;
           color: #6b7280;
+          line-height: 1.6;
         }
         
         .parties {
-          display: flex;
-          justify-content: space-between;
-          gap: 20px;
-          margin-bottom: 18px;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 40px;
+          margin-bottom: 40px;
+          padding: 25px 0;
         }
         .party-section h3 {
           font-size: 11px;
           text-transform: uppercase;
           color: #6b7280;
-          margin-bottom: 4px;
+          margin-bottom: 10px;
+          font-weight: 600;
+          letter-spacing: 0.5px;
         }
-        .party-name { font-size: 14px; font-weight: 700; margin-bottom: 2px; }
-        .party-details { font-size: 14px; color: #4b5563; line-height: 1.6; }
+        .party-name { 
+          font-size: 15px; 
+          font-weight: 700; 
+          margin-bottom: 6px;
+          color: #1a1a2e;
+        }
+        .party-details { 
+          font-size: 13px; 
+          color: #4b5563; 
+          line-height: 1.7;
+        }
         
         table { 
           width: 100%; 
           border-collapse: collapse; 
-          margin-bottom: 30px;
+          margin-bottom: 35px;
         }
         th { 
-          background: #f3f4f6; 
-          padding: 12px 16px; 
+          background: #f8fafc; 
+          padding: 14px 16px; 
           text-align: left;
-          font-size: 12px;
+          font-size: 11px;
           text-transform: uppercase;
-          color: #6b7280;
-          letter-spacing: 0.5px;
+          color: #374151;
+          letter-spacing: 0.6px;
+          font-weight: 700;
+          border-top: 2px solid #e5e7eb;
+          border-bottom: 2px solid #e5e7eb;
         }
         th:last-child { text-align: right; }
         td {
-          padding: 10px 8px;
-          border-bottom: 1px solid #e5e7eb;
-          font-size: 12px;
+          padding: 13px 16px;
+          border-bottom: 1px solid #f3f4f6;
+          font-size: 13px;
+          color: #1a1a2e;
         }
         td:last-child { text-align: right; }
-        .item-name { font-weight: 500; }
-        .item-desc { font-size: 13px; color: #6b7280; margin-top: 2px; }
+        tr:last-child td { border-bottom: 2px solid #e5e7eb; }
+        .item-name { 
+          font-weight: 600;
+          color: #1a1a2e;
+        }
+        .item-desc { 
+          font-size: 12px; 
+          color: #6b7280; 
+          margin-top: 4px;
+        }
         
         .totals {
           display: flex;
           justify-content: flex-end;
-          margin-bottom: 18px;
+          margin-bottom: 35px;
         }
         .totals-box {
-          width: 220px;
+          width: 280px;
           background: #f8fafc;
-          border-radius: 6px;
-          padding: 12px;
+          border-radius: 8px;
+          padding: 20px;
+          border: 1px solid #e5e7eb;
         }
         .total-row { 
           display: flex; 
           justify-content: space-between;
-          padding: 8px 0;
+          padding: 10px 0;
+          font-size: 13px;
+          color: #6b7280;
+        }
+        .total-row span:last-child {
+          font-weight: 600;
+          color: #1a1a2e;
         }
         .total-row.grand { 
-          font-size: 20px; 
-          font-weight: bold;
+          font-size: 18px; 
+          font-weight: 700;
           border-top: 2px solid #e5e7eb;
-          margin-top: 8px;
-          padding-top: 16px;
+          margin-top: 12px;
+          padding-top: 14px;
           color: #1a1a2e;
         }
         
         .notes-section {
           background: #f8fafc;
-          padding: 12px;
+          padding: 16px;
           border-radius: 6px;
-          margin-bottom: 14px;
+          margin-bottom: 18px;
+          border: 1px solid #e5e7eb;
         }
         .notes-section h4 { 
-          font-size: 12px; 
+          font-size: 11px; 
           text-transform: uppercase;
-          color: #6b7280;
-          margin-bottom: 8px;
+          color: #374151;
+          margin-bottom: 10px;
+          font-weight: 700;
+          letter-spacing: 0.5px;
         }
-        .notes-section p { font-size: 14px; color: #4b5563; line-height: 1.6; }
+        .notes-section p { 
+          font-size: 13px; 
+          color: #4b5563; 
+          line-height: 1.7;
+        }
         
         .footer {
           text-align: center;
@@ -374,52 +416,17 @@ export async function generatePDF({ type, document, client, settings, download =
   `;
 
   if (download) {
-    const options = {
-      margin: 0.5,
-      filename: `${type}_${document.number}.pdf`,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true },
-      jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
-    };
-
-    // Update HTML with new header structure
-    const updatedHtml = html.replace(
-      /<div class="header">[\s\S]*?<\/div>/,
-      `<div class="header">
-        <div class="header-left">
-          ${settings.logo ? `<img src="${settings.logo}" class="logo" alt="Logo">` : ''}
-          <div class="company-info">
-            <div class="company-name">${settings.name || 'Your Business'}</div>
-            <div class="company-details">
-              ${settings.phone ? `${settings.phone}<br>` : ''}
-              ${settings.email ? `${settings.email}<br>` : ''}
-              ${settings.address ? `${settings.address}` : ''}
-            </div>
-          </div>
-        </div>
-        <div class="header-right">
-          <div class="doc-type">${type}</div>
-          <div class="doc-number">${document.number}</div>
-          <div class="doc-date">Date: ${new Date(document.createdAt).toLocaleDateString('en-IN')}</div>
-          ${isInvoice && invoice ? `<div class="doc-date">Due: ${new Date(invoice.dueDate).toLocaleDateString('en-IN')}</div>` : ''}
-        </div>
-      </div>`
-    );
-
-    // Generate PDF as blob and download directly
-    const element = document.createElement('div');
-    element.innerHTML = updatedHtml;
-    element.style.position = 'absolute';
-    element.style.left = '-9999px';
-    document.body.appendChild(element);
-
-    try {
-      await html2pdf().set(options).from(element).save();
-    } finally {
-      document.body.removeChild(element);
+    // Open print preview instead of direct PDF download
+    // User can save as PDF from print dialog
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      throw new Error('POPUP_BLOCKED');
     }
+
+    printWindow.document.write(html);
+    printWindow.document.close();
   } else {
-    // Original print functionality
+    // Original print functionality when not downloading
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
       throw new Error('POPUP_BLOCKED');
@@ -481,149 +488,201 @@ export async function generatePDFBlob({ type, document, client, settings }: Docu
       <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
           padding: 40px;
           color: #1a1a2e;
-          max-width: 800px;
+          max-width: 850px;
           margin: 0 auto;
+          background: white;
         }
         .header { 
           display: flex; 
           justify-content: space-between; 
-          align-items: center;
-          margin-bottom: 40px;
-          padding-bottom: 20px;
-          border-bottom: 2px solid #e5e7eb;
+          align-items: flex-start;
+          margin-bottom: 50px;
+          padding-bottom: 30px;
+          border-bottom: 3px solid #e5e7eb;
         }
         .header-left {
           display: flex;
-          align-items: center;
-          gap: 16px;
+          align-items: flex-start;
+          gap: 18px;
           flex: 1;
         }
         .logo {
-          width: 48px;
-          height: 48px;
+          width: 60px;
+          height: 60px;
           object-fit: contain;
+          flex-shrink: 0;
         }
         .company-info {
           flex: 1;
         }
         .company-name {
-          font-size: 22px;
-          font-weight: bold;
+          font-size: 24px;
+          font-weight: 700;
           color: #1a1a2e;
-          margin-bottom: 6px;
+          margin-bottom: 8px;
+          letter-spacing: -0.5px;
         }
         .company-details {
           font-size: 13px;
           color: #6b7280;
-          line-height: 1.5;
+          line-height: 1.6;
         }
         .header-right {
           text-align: right;
-          min-width: 180px;
+          min-width: 200px;
         }
         .doc-type { 
-          font-size: 24px; 
-          font-weight: bold; 
+          font-size: 28px; 
+          font-weight: 700; 
           text-transform: uppercase;
-          color: ${isInvoice ? '#10b981' : '#3b82f6'};
-          margin-bottom: 8px;
+          color: ${isInvoice ? '#059669' : '#2563eb'};
+          margin-bottom: 10px;
+          letter-spacing: 0.5px;
         }
-        .doc-number { font-size: 16px; color: #374151; margin-bottom: 4px; }
-        .doc-date { font-size: 14px; color: #6b7280; }
+        .doc-number { 
+          font-size: 18px; 
+          color: #374151; 
+          margin-bottom: 6px;
+          font-weight: 600;
+        }
+        .doc-date { 
+          font-size: 13px; 
+          color: #6b7280;
+          line-height: 1.6;
+        }
         
         .parties { 
           display: grid; 
           grid-template-columns: 1fr 1fr; 
           gap: 40px;
           margin-bottom: 40px;
+          padding: 25px 0;
         }
         .party-section h3 { 
-          font-size: 12px; 
+          font-size: 11px; 
           text-transform: uppercase; 
           color: #6b7280;
-          margin-bottom: 8px;
+          margin-bottom: 10px;
           letter-spacing: 0.5px;
+          font-weight: 600;
         }
-        .party-name { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
-        .party-details { font-size: 14px; color: #4b5563; line-height: 1.6; }
+        .party-name { 
+          font-size: 15px; 
+          font-weight: 700; 
+          margin-bottom: 6px;
+          color: #1a1a2e;
+        }
+        .party-details { 
+          font-size: 13px; 
+          color: #4b5563; 
+          line-height: 1.7;
+        }
         
         table { 
           width: 100%; 
           border-collapse: collapse; 
-          margin-bottom: 30px;
+          margin-bottom: 35px;
         }
         th { 
-          background: #f3f4f6; 
-          padding: 12px 16px; 
+          background: #f8fafc; 
+          padding: 14px 16px; 
           text-align: left;
-          font-size: 12px;
+          font-size: 11px;
           text-transform: uppercase;
-          color: #6b7280;
-          letter-spacing: 0.5px;
+          color: #374151;
+          letter-spacing: 0.6px;
+          font-weight: 700;
+          border-top: 2px solid #e5e7eb;
+          border-bottom: 2px solid #e5e7eb;
         }
         th:last-child { text-align: right; }
         td { 
-          padding: 16px; 
-          border-bottom: 1px solid #e5e7eb;
-          font-size: 14px;
+          padding: 13px 16px; 
+          border-bottom: 1px solid #f3f4f6;
+          font-size: 13px;
+          color: #1a1a2e;
         }
         td:last-child { text-align: right; }
-        .item-name { font-weight: 500; }
-        .item-desc { font-size: 13px; color: #6b7280; margin-top: 2px; }
+        tr:last-child td { border-bottom: 2px solid #e5e7eb; }
+        .item-name { 
+          font-weight: 600;
+          color: #1a1a2e;
+        }
+        .item-desc { 
+          font-size: 12px; 
+          color: #6b7280; 
+          margin-top: 4px;
+        }
         
         .totals { 
           display: flex; 
           justify-content: flex-end;
-          margin-bottom: 40px;
+          margin-bottom: 35px;
         }
         .totals-box { 
           width: 280px;
           background: #f8fafc;
           border-radius: 8px;
           padding: 20px;
+          border: 1px solid #e5e7eb;
         }
         .total-row { 
           display: flex; 
           justify-content: space-between;
-          padding: 8px 0;
+          padding: 10px 0;
+          font-size: 13px;
+          color: #6b7280;
+        }
+        .total-row span:last-child {
+          font-weight: 600;
+          color: #1a1a2e;
         }
         .total-row.grand { 
-          font-size: 20px; 
-          font-weight: bold;
+          font-size: 18px; 
+          font-weight: 700;
           border-top: 2px solid #e5e7eb;
-          margin-top: 8px;
-          padding-top: 16px;
+          margin-top: 12px;
+          padding-top: 14px;
           color: #1a1a2e;
         }
         
         .amount-in-words {
-          margin-bottom: 30px;
-          padding: 15px;
-          background: #fafbfc;
+          margin-bottom: 35px;
+          padding: 16px;
+          background: #f8fafc;
           border-radius: 8px;
+          border: 1px solid #e5e7eb;
         }
         .amount-in-words p {
           font-size: 13px;
           color: #4b5563;
-          line-height: 1.6;
+          line-height: 1.7;
+          font-weight: 500;
         }
         
         .notes-section { 
           background: #f8fafc; 
-          padding: 20px;
+          padding: 16px;
           border-radius: 8px;
-          margin-bottom: 20px;
+          margin-bottom: 18px;
+          border: 1px solid #e5e7eb;
         }
         .notes-section h4 { 
-          font-size: 12px; 
+          font-size: 11px; 
           text-transform: uppercase;
-          color: #6b7280;
-          margin-bottom: 8px;
+          color: #374151;
+          margin-bottom: 10px;
+          font-weight: 700;
+          letter-spacing: 0.5px;
         }
-        .notes-section p { font-size: 14px; color: #4b5563; line-height: 1.6; }
+        .notes-section p { 
+          font-size: 13px; 
+          color: #4b5563; 
+          line-height: 1.7;
+        }
         
         .footer {
           text-align: center;

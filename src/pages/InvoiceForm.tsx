@@ -222,12 +222,12 @@ export default function InvoiceForm() {
     const client = getClient(clientId);
     try {
       await generatePDF({ type: 'invoice', document: existingInvoice, client, settings, download: true });
-      toast({ title: 'PDF downloaded successfully' });
+      toast({ title: 'Print preview opened', description: 'Use your browser\'s print dialog to save as PDF.' });
     } catch (err) {
       if (err instanceof Error && err.message === 'POPUP_BLOCKED') {
-        toast({ title: 'Popups are blocked', description: 'Please allow popups for this site to download the PDF.', variant: 'destructive' });
+        toast({ title: 'Popups are blocked', description: 'Please allow popups for this site.', variant: 'destructive' });
       } else {
-        toast({ title: 'PDF generation failed', description: err instanceof Error ? err.message : String(err), variant: 'destructive' });
+        toast({ title: 'Error', description: err instanceof Error ? err.message : String(err), variant: 'destructive' });
       }
     }
   };
